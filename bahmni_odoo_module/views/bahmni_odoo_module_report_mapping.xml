@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <report 
+            id="bahmni_report_account_payment"
+            string="Account Payment"
+            model="account.payment" 
+            report_type="qweb-pdf"
+            file="bahmni_odoo_module.bahmni_report_account_payment_template" 
+            name="bahmni_odoo_module.bahmni_report_account_payment_template" />
+            
+        <report 
+            id="bahmni_accoint_invoice_print"
+            string="Account Payment"
+            model="account.invoice" 
+            report_type="qweb-pdf"
+            file="bahmni_odoo_module.bahmni_report_invoice_payment_document" 
+            name="bahmni_odoo_module.bahmni_report_invoice_payment_document" />
+
+            <report 
+            id="iplit_advance_print"
+            string="Advance Receipt"
+            model="account.payment" 
+            report_type="qweb-pdf"
+            file="bahmni_odoo_module.iplit_advance_print_report_template" 
+            name="bahmni_odoo_module.iplit_advance_print_report_template" />
+    </data>
+</odoo>

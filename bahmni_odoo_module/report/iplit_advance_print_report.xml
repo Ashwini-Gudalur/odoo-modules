@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="iplit_advance_print_report_document">
+        <t t-call="report.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="bahmni_odoo_module.custom_external_layout">
+                    <div class="page">
+                        <div class="row mt32 mb32">
+                            <div class="col-xs-4">
+                                <p>
+                                    <t>
+                                        <strong>Name:</strong>
+                                        <span t-esc="o.partner_id.name"/>
+                                        <br/>
+                                    </t>
+                                    <t >
+                                        <strong>Bill No.: </strong>
+                                        <span t-esc="o.name"/>
+                                        <br/>
+                                    </t>
+                                </p>
+                            </div>
+                            <div class="col-xs-4">
+                                <p>
+                                    <t>
+                                        <strong>ID:</strong>
+                                        <span t-esc="o.partner_id.ref"/>
+                                        <br/>
+                                    </t>
+                                </p>
+                            </div>
+                            <div class="col-xs-4">
+                                <p>
+                                    <t>
+                                        <strong>Date :</strong>
+                                        <span t-esc="o.payment_date"/>
+                                        <br/>
+                                    </t>
+                                    
+                                </p>
+                            </div>
+                            <table class="table table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th width="60%">Service / Product</th>
+                                        <th class="text-right">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t>
+                                        <tr>
+                                            <td width="60%">Advance</td>
+                                            <td class="text-right">
+                                                <span t-esc="o.amount"
+                                                    t-options='{"widget": "monetary", "display_currency": o.partner_id.currency_id}'/>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                            <div class="row" name="total">
+                                <div class="col-xs-4 pull-right">
+                                    <table class="table table-condensed">
+                                        <tr>
+                                            <td>
+                                                <strong>Total Amount</strong>
+                                            </td>
+                                            <td class="text-right">
+                                                <span t-esc="o.amount"
+                                            t-options='{"widget": "monetary", "display_currency": o.partner_id.currency_id}'/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+    <template id="iplit_advance_print_report_template">
+        <t t-call="report.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="bahmni_odoo_module.iplit_advance_print_report_document" t-lang="doc.partner_id.lang"/></t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <record id="partner_attribute_form_new"  model="ir.ui.view">
+            <field name="name">sale.order.form</field>
+            <field name="model">sale.order</field>
+            <field name="type">form</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <!-- <field name="partner_uuid"/> -->
+                    <field name="partner_is_tribe" />
+                    <field name="partner_caste"  />
+                    <field name="partner_is_sangam" />
+                    <field name="partner_is_Premium" />
+                    <field name="partner_visting" />
+                </xpath>
+                <xpath expr="//field[@name='provider_name']" position="after">
+                    <field name="claimtype" options="{'no_create': True, 'no_create_edit':True,'no_open':True}" required="1"/>
+                </xpath>
+                <xpath expr="//field[@name='shop_id']" position="after">
+                    <field name="dateofAdmission"  invisible="1"/>
+                    <field name="dateofDischarge"  invisible="1"/>
+                    <field name="daysinhops"  invisible="1"/>
+                </xpath>
+                <field name="payment_term_id" position="attributes">
+                        <attribute name="invisible">True</attribute>
+                </field>
+                 <field name="validity_date" position="attributes">
+                        <attribute name="invisible">True</attribute>
+                </field>
+                <xpath expr="/form/sheet/notebook/page/field[@name='order_line']/tree/field[@name='product_id']" position="before">
+                    <!-- <field name="categ_id"/> -->
+                    <field name="expiry_date" invisible="1"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+    <data>
+        <record model="ir.ui.view" id="sale_order_order_type">
+            <field name="name">sale.order.order.type.tree</field>
+            <field name="model">sale.order</field>
+            <field name="type">tree</field>
+            <field name="inherit_id" ref="sale.view_quotation_tree" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='state']" position="after">
+                    <field name="order_type"/>
+                </xpath>
+                <xpath expr="//field[@name='state']" position="before">
+                    <!-- <field name="care_setting"/> -->
+                    <field name="partner_visting"/>
+         
+                </xpath>
+                <xpath expr="//field[@name='state']" position="after">
+                    <field name="partner_visting"/>
+                </xpath>
+                <!-- <xpath expr="//field[@name='name='amount_total']" position="after">
+                    <field name="provider_name"/>
+                </xpath> -->
+            </field>
+        </record>
+    </data>
+    <data>
+        <record id="view_order_tree_with_visit" model="ir.ui.view">
+            <field name="name">sale.order.tree</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_tree"/>
+            <field name="priority">2</field>
+            <field name="arch" type="xml">
+                <xpath expr="/tree/field[@name='partner_id']" position="after">
+                    <field name="shop_id"/>
+                </xpath>
+                <xpath expr="/tree/field[@name='state']" position="before">
+                    <field name="care_setting"/>
+                </xpath>
+                <xpath expr="/tree/field[@name='state']" position="before">
+                    <field name="partner_is_tribe"/>
+                    <field name="partner_visting"/>
+                </xpath>
+                <xpath expr="/tree/field[@name='amount_total']" position="after">
+                    <field name="provider_name"/>
+                    <field name="disc_acc_id"/>
+                </xpath>
+                
+            </field>
+        </record>
+    </data>
+    <data>
+        <!-- <record id="sale_form_add_batch_price_extn" model="ir.ui.view">
+            <field name="name">sale.order.form</field>
+            <field name="model">sale.order</field>
+            <field name="type">form</field>
+            <field name="inherit_id" ref="bahmni_stock_batch_sale_price.sale_form_add_batch_price"/>
+            <field name="arch" type="xml">
+                <xpath expr="/form/sheet/notebook/page/field[@name='order_line']/tree/field[@name='batch_id']" position="replace" >
+                    <field name="batch_id" domain="[('product_id','=',product_id)]"
+                           on_change="batch_id_change(batch_id,product_id,context)"/>
+                </xpath>
+            </field>
+        </record> -->
+    </data>
+
+    <data>
+        <!-- <record id="view_sales_order_filter_inherit_cust" model="ir.ui.view">
+            <field name="name">sale.order.filter.inherit.cust</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+                    <separator/>
+                    <filter string="Claim Type" name="claimtype"/>
+                </xpath>
+                <xpath expr="//group[@expand='0']" position="after">
+                    <separator/>
+                   <filter string="Claim Type" domain="[]" context="{'group_by':'claimtype'}"/>
+                </xpath>
+            </field>
+        </record> -->
+    </data>
+
+        <record id="view_partner_form_inherit_tin_number" model="ir.ui.view">
+            <field name="name">res.partner.inherited.tin_number</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='website']" position="before">
+                    <field name="tin_number"/>
+                </xpath>
+            </field>
+        </record>
+
+           <record model="ir.ui.view" id="view_partner_tree_cust">
+            <field name="name">res.partner.tree.form.inherit.cust</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='phone']" position="after">
+                    <field name="tin_number"/>
+                </xpath>
+            </field>
+        </record>
+</odoo>

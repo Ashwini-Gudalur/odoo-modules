@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_providers,access_providers,model_providers,,1,1,1,1
+access_syncjob_department_category_mapping,access_syncjob_department_category_mapping,model_syncjob_department_category_mapping,,1,1,1,1
+access_location_stock_quant,access_location_stock_quant,model_location_stock_quant,,1,1,1,1
+access_product_stock_picking,access_product_stock_picking,model_product_stock_picking,,1,1,1,1

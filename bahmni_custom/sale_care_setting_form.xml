@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- <record id="sale_care_setting_form" model="ir.ui.view">
+            <field name="name">sale.order.form</field>
+            <field name="model">sale.order</field>
+            <field name="type">form</field>
+            <field name="inherit_id" ref="sale.view_order_forme"/>
+
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='care_setting']" position="replace">
+                    <field name="care_setting"/>
+                </xpath>
+                </field>
+            </record> -->
+        </data>
+    </odoo>

@@ -1,0 +1,15 @@
+@page { size: 18cm 22cm; margin: 1cm;}
+table { font-family: Roman, San-Serif, Draft;font-size:10pt;}
+table {border-collapse: collapse;}
+table, td, th {border: 1px solid black; }
+#printBill { font-family: Roman, San-Serif, Draft;font-size:10pt; }
+#lineItems { clear:both; width:100%; border-top: 1px dashed;}
+#receipt_heading {width:100%;text-align:center;clear:both;margin-top:10px; font-weight: bold}
+#cashier-initials {margin-top: 40px; font-size: 8pt;}
+#message-bill {font-style: italic; margin-top: 10px}
+table.bottom-border {border-bottom: 1px dashed;}
+.totalLabel { width: 60%; text-align: right;}
+.totalValue { width: 40%; text-align: right;}
+.right { text-align: right;}
+.small { font-size: 75%;}
+hr.dashed {border-top: 1px dashed #000; color: #fff; background-color: #fff; height: 1px; }

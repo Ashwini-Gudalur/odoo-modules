@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+  
+    
+        <record model="ir.filters" id="products_expired">
+            <field name="name">Expired Products</field>
+            <field name="model_id">prodlots.report</field>
+            <field name="user_id"></field>
+            <field name="domain">
+                [
+                ['life_date', '&lt;', context_today().strftime('%Y-%m-%d')],['qty', '&gt;', 0]
+                ]
+            </field>
+        </record>
+        <record model="ir.filters" id="products_expiring_in_3months">
+            <field name="name">Expiring in 3 months</field>
+            <field name="model_id">prodlots.report</field>
+            <field name="user_id"></field>
+            <field name="domain">
+                [
+                ['life_date', '&gt;=', context_today().strftime('%Y-%m-%d')],[ 'life_date', '&lt;',(context_today() + datetime.timedelta(90)).strftime('%Y-%m-%d')],['qty', '&gt;', 0]
+                ]
+            </field>
+        </record>
+        <record model="ir.filters" id="products_expired_and_expiring_in_3months">
+            <field name="name">Already Expired and Expiring in 3 months</field>
+            <field name="model_id">prodlots.report</field>
+            <field name="user_id"></field>
+            <field name="domain">
+                [
+                [ 'life_date', '&lt;',(context_today() + datetime.timedelta(90)).strftime('%Y-%m-%d')],['qty', '&gt;', 0]
+                ]
+            </field>
+        </record>
+        <record model="ir.filters" id="products_stock_reports">
+            <field name="name">Stock Reports</field>
+            <field name="model_id">prodlots.report</field>
+            <field name="user_id"></field>
+            <field name="domain">
+                [
+                ['qty', '>', 0], ['location_id.name', 'not ilike', 'Loss'], ['location_id.name', 'not ilike', 'Expired'], ['location_id.name', 'not ilike', 'Area'], ['location_id.name', 'not ilike', 'Customer']
+                ]
+            </field>
+        </record>
+
+
+
+
+    </data>
+</odoo>

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- <data>
+        <record id="account_voucher_shop_id_form" model="ir.ui.view">
+            <field name="name">account.voucher.receipt.form</field>
+            <field name="model">account.voucher</field>
+            <field name="type">form</field>
+            <field name="inherit_id" ref="bahmni_customer_payment.jss_invoice_form_add_discount"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='balance_amount']" position="after">
+                    <field name="shop_id"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+    <data>
+        <record id="stock_picking_out_form_ext" model="ir.ui.view">
+            <field name="name">stock.picking.out.form</field>
+            <field name="model">stock.picking.out</field>
+            <field name="type">tree</field>
+            <field name="inherit_id" ref="stock.view_picking_out_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='invoice_state']" position="after">
+                    <field name="shop_id"/>
+                </xpath>
+            </field>
+        </record>
+    </data> -->
+<!-- 
+    <data>
+        <record id="view_voucher_tree_ext" model="ir.ui.view">
+            <field name="name">account.voucher.tree</field>
+            <field name="model">account.voucher</field>
+            <field name="type">tree</field>
+            <field name="inherit_id" ref="bahmni_customer_payment.bahmni_view_voucher_tree"/>
+
+            <field name="arch" type="xml">
+                <xpath expr="/tree//field[@name='state']" position="after" >
+                    <field name="shop_id"/>
+                </xpath>
+                <xpath expr="/tree//field[@name='state']" position="after" >
+                    <field name="partner_is_tribe"/>
+                </xpath>
+                <xpath expr="/tree//field[@name='state']" position="after" >
+                    <field name="balance_before_pay"/>
+                </xpath>
+                <xpath expr="/tree//field[@name='state']" position="after" >
+                    <field name="balance_amount"/>
+                </xpath>
+            </field>
+        </record>
+    </data> -->
+
+        <record id="view_account_payment_invoice_form_inherited_bahmni" model="ir.ui.view">
+            <field name="name">account.payment.invoice.form.inherited.bahmni</field>
+            <field name="model">account.payment</field>
+            <field name="inherit_id" ref="account.view_account_payment_invoice_form" />
+            <field name="arch" type="xml">
+               <xpath expr="//field[@name='journal_id']" position="before">
+                    <field name="shop_id"/>
+                    <field  name="partner_is_tribe" invisible="1"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_account_payment_form_inherited_bahmni" model="ir.ui.view">
+            <field name="name">account.payment.invoice.form.inherited.bahmni.payment</field>
+            <field name="model">account.payment</field>
+            <field name="inherit_id" ref="account.view_account_payment_form" />
+            <field name="arch" type="xml">
+               <xpath expr="//field[@name='journal_id']" position="before">
+                    <field name="shop_id"/>
+                </xpath>
+            </field>
+        </record>
+
+        
+    <data>
+        <record id="providers_form_view" model="ir.ui.view">
+            <field name="name">providers.form</field>
+            <field name="type">form</field>
+            <field name="model">providers</field>
+            <field name="arch" type="xml">
+                <form string="Providers" version="7.0">
+                    <group>
+                        <field name="name"/>
+                    </group>
+                </form>
+            </field>
+        </record>
+
+
+        <record id="providers_tree_view" model="ir.ui.view">
+            <field name="name">providers.tree</field>
+            <field name="model">providers</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Providers">
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+
+        <record id="providers_filter" model="ir.ui.view">
+            <field name="name">providers.filter</field>
+            <field name="model">providers</field>
+            <field name="arch" type="xml">
+                <search string="Providers">
+                    <field name="name"/>
+                </search>
+            </field>
+        </record>
+
+
+        <record id="providers_ashwini" model="ir.actions.act_window">
+            <field name="name">Providers</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">providers</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="context">{}</field>
+        </record>
+
+        <menuitem action="providers_ashwini"
+                  id="menu_providers_ashwini"
+                  parent="sales_team.menu_sale_config"
+                  sequence="5"/>
+
+    </data>
+
+
+
+    <record id="inherit_sale_order_form_batch_line_lot_id" model="ir.ui.view">
+		<field name="name">inherit.sale.order.form</field>
+		<field name="model">sale.order</field>
+		<field name="inherit_id" ref="sale.view_order_form"/>
+		<field name="arch" type="xml">
+
+            <xpath expr="//field[@name='shop_id']" position="after">
+                <field name="shop_location_id" invisible="1"/>
+            </xpath>
+			<xpath expr="//field[@name='order_line']/tree/field[@name='qty_delivered']" position="after">
+
+				<field name="location_lot_line_id" 
+                domain="[('product_id','=',product_id),('location_id','=',parent.shop_location_id),('life_date', '&gt;=', datetime.datetime.now())]"  
+                options="{'no_create_edit': True}" context="{'form_view_ref' : 'bahmni_custom.location_stock_quant_view_from'}" />
+
+			</xpath>
+			<xpath expr="//field[@name='order_line']/form/group/group/field[@name='price_unit']" position="after">
+
+				<field name="location_lot_line_id" 
+                domain="[('product_id','=',product_id),('location_id','=',parent.shop_location_id),('life_date', '&gt;=', datetime.datetime.now())]"
+                 options="{'no_create_edit': True}" context="{'form_view_ref' : 'bahmni_custom.location_stock_quant_view_from'}" />
+				
+			</xpath>
+			
+		</field>
+	</record>
+
+
+
+    <record id="location_stock_quant_view_from" model="ir.ui.view">
+        <field name="name">location.stock.quant.form</field>
+        <field name="model">location.stock.quant</field>
+        <field name="arch" type="xml">
+            <form string="Location" create="false" edit="false" readonly="1" >
+                <group>
+                <field name="product_id"  readonly="1"/>
+                <field name="location_id" readonly="1"/>
+                <field name="qty"  readonly="1"/>
+                <field name="life_date"  readonly="1"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+
+    <record id="view_picking_form_cust" model="ir.ui.view">
+        <field name="name">stock.picking.form.view.cust</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='extra']" position="before">
+                <page string="Product" name="product_page">
+                    <field name="product_pack_lot_ids" >
+                        <tree string="line" delete="false" create="false" edit="false">
+                            <field name="product_id"  />
+                            <field name="product_uom_id"  />
+                            <!-- <field name="from_loc"  />
+                            <field name="to_loc"  /> -->
+                            <field name="lot_id"  />
+                            <field name="qty_done"  />
+                            <field name="available_qty"  />
+                            <field name="state"  />
+                           
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+        </record>
+</odoo>

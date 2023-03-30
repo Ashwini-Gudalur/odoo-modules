@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="chargetype_category_form_view" model="ir.ui.view">
+            <field name="name">syncjob.chargetype.category.mapping.form</field>
+            <field name="type">form</field>
+            <field name="model">syncjob.chargetype.category.mapping</field>
+            <field name="arch" type="xml">
+                <form string="Charge Type" version="7.0">
+                    <group>
+                    <field name="chargetype_name"/>
+                    <field name="category_id"/>
+                    </group>
+                </form>
+            </field>
+        </record>
+
+
+        <record id="chargetype_category_tree_view" model="ir.ui.view">
+            <field name="name">syncjob.chargetype.category.mapping.tree</field>
+            <field name="model">syncjob.chargetype.category.mapping</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Charge Type">
+                    <field name="chargetype_name"/>
+                    <field name="category_id"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_syncjob_chargetype_category_mapping" model="ir.actions.act_window">
+            <field name="name">Charge Type</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">syncjob.chargetype.category.mapping</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="context">{}</field>
+        </record>
+
+        <menuitem action="action_syncjob_chargetype_category_mapping"
+                  id="menu_action_syncjob_chargetype_category_mapping"
+                  parent="sale.menu_sales_config" groups="base.group_user"
+                  sequence="7"/>
+
+    </data>
+</odoo>
+

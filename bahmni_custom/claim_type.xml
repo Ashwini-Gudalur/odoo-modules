@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="claim_type_form_view" model="ir.ui.view">
+            <field name="name">claim.type.form</field>
+            <field name="type">form</field>
+            <field name="model">claim.type</field>
+            <field name="arch" type="xml">
+                <form string="Claim Type" version="7.0">
+                    <group>
+                        <field name="name"/>
+                        <!-- <field name="erp_patient_id"/> -->
+                    </group>
+                </form>
+            </field>
+        </record>
+
+
+        <record id="claim_type_tree_view" model="ir.ui.view">
+            <field name="name">claim.type.tree</field>
+            <field name="model">claim.type</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Claim Type">
+                    <field name="name"/>
+                    <!-- <field name="erp_patient_id"/> -->
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_claim_type_mapping" model="ir.actions.act_window">
+            <field name="name">Claim Type</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">claim.type</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="context">{}</field>
+        </record>
+
+        <menuitem action="action_claim_type_mapping"
+                  id="menu_action_claim_type_mapping"
+                  parent="sale.menu_sales_config" groups="base.group_user"
+                  sequence="8"/>
+
+    </data>
+</odoo>
+

@@ -1,0 +1,11 @@
+# import module_misc
+import attribute_in_sale_order
+import claim_type
+import sale_order_type
+import shop_account_voucher
+import product_category_department
+import chargetype_category_mapping
+import product_schedule_h_category
+import stock_report_prod_by_last_moved
+import stock_report_prodlots
+import product_temp
