@@ -143,18 +143,40 @@
 			<xpath expr="//field[@name='order_line']/tree/field[@name='qty_delivered']" position="after">
 
 				<field name="location_lot_line_id" 
-                domain="[('product_id','=',product_id),('location_id','=',parent.shop_location_id),('life_date', '&gt;=', datetime.datetime.now())]"  
+                domain="[('product_id','=',product_id),('qty','>',0),('location_id','=',parent.shop_location_id),('life_date', '&gt;=', datetime.datetime.now())]"  
                 options="{'no_create_edit': True}" context="{'form_view_ref' : 'bahmni_custom.location_stock_quant_view_from'}" />
 
 			</xpath>
 			<xpath expr="//field[@name='order_line']/form/group/group/field[@name='price_unit']" position="after">
 
 				<field name="location_lot_line_id" 
-                domain="[('product_id','=',product_id),('location_id','=',parent.shop_location_id),('life_date', '&gt;=', datetime.datetime.now())]"
+                domain="[('product_id','=',product_id),('qty','>',0),('location_id','=',parent.shop_location_id),('life_date', '&gt;=', datetime.datetime.now())]"
                  options="{'no_create_edit': True}" context="{'form_view_ref' : 'bahmni_custom.location_stock_quant_view_from'}" />
 				
 			</xpath>
 			
+		</field>
+	</record>
+
+    <record id="view_pack_operation_lot_form_inheritcustom" model="ir.ui.view">
+		<field name="name">view.pack.operation.lot.form.inherit</field>
+		<field name="model">stock.pack.operation</field>
+		<field name="inherit_id" ref="stock.view_pack_operation_lot_form"/>
+		<field name="arch" type="xml">
+			<!-- <xpath expr="//field[@name='pack_lot_ids']/tree/field[@name='lot_id']" position="after">
+				<field name="location_lot_line_id"  domain="[('product_id','=',parent.product_id),('qty','>',0)]"/>
+			</xpath> -->
+            <!-- <xpath expr="//field[@name='pack_lot_ids']/tree/field[@name='lot_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+			</xpath> -->
+                        <xpath expr="//field[@name='pack_lot_ids']/tree/field[@name='lot_id']" position="replace">
+                            <field name="lot_id" invisible="context.get('only_create', False)"
+                            domain="[('product_id','=', parent.product_id),('life_date', '&gt;=', datetime.datetime.now()),('product_qty','>',0)]"
+                            context="{'default_product_id': parent.product_id, 'active_pack_operation': parent.id}"/>
+			</xpath>
+
+            
+
 		</field>
 	</record>
 

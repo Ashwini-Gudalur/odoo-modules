@@ -198,7 +198,7 @@ class sale_order(models.Model):
    
     def _prepare_invoice(self):
         ret = super(sale_order, self)._prepare_invoice()
-        ret.update({'shop_id':self.shop_id.id})
+        ret.update({'shop_id':self.shop_id.id,})
         return ret
     
     @api.onchange('shop_id')
@@ -569,18 +569,22 @@ class location_stock_quant(models.Model):
     @api.multi
     def name_get(self):
         res = []
+        print(".....................",self.search([('id','in',self.ids)], order='life_date asc'))
         for record in self.search([('id','in',self.ids)], order='life_date asc'):
             lot_name = record.lot_id.name
-            # if record.lot_id.life_date >= str(fields.datetime.now()):
+            print("...............",record.lot_id.life_date)
             if(record.lot_id.life_date):
                 expiry_date = datetime.strptime(record.lot_id.life_date, '%Y-%m-%d %H:%M:%S')
                 expiry = expiry_date.strftime("%b,%Y")
 
                 stock_records = self.env['stock.quant'].search([('lot_id','=',record.lot_id.id),('location_id','=',record.location_id.id),('product_id','=',record.lot_id.product_id.id),('location_id.usage','=', 'internal'),('qty','>', 0)])
-                if sum(stock_records.mapped('qty')) >0:
-                    name = "%s [%s] [%s] [%s]" % (lot_name,expiry,record.location_id.name,sum(stock_records.mapped('qty')))
+                # if sum(stock_records.mapped('qty')) >0:
+                #     name = "%s [%s] [%s] [%s]" % (lot_name,expiry,record.location_id.name,sum(stock_records.mapped('qty')))
 
-                    res.append((record.id, name))
+                #     res.append((record.id, name))
+                name = "%s [%s] [%s] [%s]" % (lot_name,expiry,record.location_id.name,sum(stock_records.mapped('qty')))
+
+                res.append((record.id, name))
         return res
 
 class Product_Picking(models.Model):
@@ -611,7 +615,6 @@ class Picking(models.Model):
     _inherit = "stock.picking"
 
     product_pack_lot_ids = fields.One2many('product.stock.picking', 'picking_id', 'Product')
-
     @api.multi
     def do_new_transfer(self):
         ret = super(Picking, self).do_new_transfer()
@@ -676,14 +679,19 @@ class Picking(models.Model):
 class StockPackOperationLot(models.Model):
     _inherit = 'stock.pack.operation.lot'
 
+    location_lot_line_id = fields.Many2one('location.stock.quant', string="Lot/Serial Number")
+
+    @api.onchange('location_lot_line_id')
+    def onchange_location_lot_line_id(self):
+        if self.location_lot_line_id:
+            self.lot_id = self.location_lot_line_id.lot_id
+        else:
+            self.lot_id = False
+
     @api.model
     def create(self, vals):
         ret =super(StockPackOperationLot, self).create(vals)
-        print("****************************ret.operation_id.picking_id.picking_type_id.code",ret.operation_id.picking_id.picking_type_id.code)
         if ret.operation_id.picking_id.picking_type_id.code == 'incoming':
-            print(".....................................vals.get('mrp')",vals.get('mrp'))
-            print(".....................................self.mrp",self.mrp)
-            print("...........................................ret.cost_price ",ret.cost_price )
             if (ret.mrp or not vals.get('mrp')) == 0:
                 raise UserError('Mrp is not set.')
             if (ret.sale_price ) == 0:
@@ -709,7 +717,6 @@ class StockPackOperationLot(models.Model):
         return ret
 
     def write(self, vals):
-        print("****************************self.operation_id.picking_id.picking_type_id.code",self.operation_id.picking_id.picking_type_id.code)
         ret =super(StockPackOperationLot, self).write(vals)
         if self.operation_id.picking_id.picking_type_id.code == 'incoming':
             if self.mrp == 0:

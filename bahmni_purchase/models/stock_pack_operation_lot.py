@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
-from odoo import models, fields, api
+from odoo import models, fields, api , _
 import odoo.addons.decimal_precision as dp
 from odoo.exceptions import UserError, ValidationError
 from odoo.exceptions import Warning
@@ -18,7 +18,8 @@ class StockPackOperationLot(models.Model):
         if operation_id:
             pack_operation = self.env['stock.pack.operation'].browse(operation_id)
             mv_op_link_ids = self.env['stock.move.operation.link'].search([('operation_id', '=', operation_id)],limit=1)
-    
+            if pack_operation.check_operation:
+                res.update({'check_operation_lot': True})
             if mv_op_link_ids:
                 for link in mv_op_link_ids:
                     res.update({'move_id': link.move_id.id})
@@ -30,7 +31,11 @@ class StockPackOperationLot(models.Model):
                         amount_tax += sum(t.get('amount', 0.0) for t in taxes.get('taxes', []))
                     else:
                         amount_tax += purchase_line.price_tax
-                    res.update({'cost_price': purchase_line.price_unit + amount_tax,'mrp':purchase_line.mrp})
+                    if purchase_line.price_unit + amount_tax > 0:
+                        res.update({'cost_price': purchase_line.price_unit + amount_tax})
+                    if purchase_line.mrp > 0:
+                        res.update({'mrp':purchase_line.mrp})
+                    # res.update({'cost_price': purchase_line.price_unit + amount_tax,'mrp':purchase_line.mrp})
         # calculate sale price, based on markup percentage defined in price markup table
         if res.get('cost_price'):
             cost_price = res.get('cost_price')
@@ -38,7 +43,11 @@ class StockPackOperationLot(models.Model):
                                                                        '|', ('higher_price', '>=', cost_price),
                                                                        ('higher_price', '=', 0)])
             if markup_table_line and len(markup_table_line)==1:
-                res.update({'sale_price': cost_price + (cost_price * markup_table_line.markup_percentage / 100)})
+                if cost_price + (cost_price * markup_table_line.markup_percentage / 100) > 0:
+                    res.update({'sale_price': cost_price + (cost_price * markup_table_line.markup_percentage / 100)})
+                # res.update({'sale_price': cost_price + (cost_price * markup_table_line.markup_percentage / 100)})
+
+            print("..................res............,res",res)
         return res
 
     sale_price = fields.Float(string="Sale Price", digits=dp.get_precision('Product Price'))
@@ -48,6 +57,15 @@ class StockPackOperationLot(models.Model):
     move_id = fields.Many2one('stock.move',
                               string="Stock Move",
                               help="This field is used to track, which all move_ids are utilized to fetch cost_price")
+    check_operation_lot = fields.Boolean( string='Check',default=False)
+    location_lot_line_id = fields.Many2one('location.stock.quant', string="Lot/serialNumber")
+
+    @api.onchange('location_lot_line_id')
+    def onchange_location_lot_line_id(self):
+        if self.location_lot_line_id:
+            self.lot_id = self.location_lot_line_id.lot_id
+        else:
+            self.lot_id = False
 
 
 
@@ -137,4 +155,42 @@ class StockPackOperationLot(models.Model):
             raise UserError('Batch number : Sales Price + Tax more that mrp :(%f+5%%) %f > %f)!' \
                                     % (sale_price, sp_with_tax, mrp))
         return super(StockPackOperationLot, self).write(vals)
+    
+class StockPicking(models.Model):
+    _inherit = 'stock.picking'
+    check = fields.Boolean(string='Check')
+
+class StockPackOperation(models.Model):
+    _inherit = 'stock.pack.operation'
+
+    check_operation = fields.Boolean(related='picking_id.check', string='Check')
+
+
+    @api.multi
+    def action_split_lots(self):
+        action_ctx = dict(self.env.context)
+        # If it's a returned stock move, we do not want to create a lot
+        returned_move = self.linked_move_operation_ids.mapped('move_id').mapped('origin_returned_move_id')
+        picking_type = self.picking_id.picking_type_id
+        action_ctx.update({
+            'check':self.check_operation,
+            'serial': self.product_id.tracking == 'serial',
+            'only_create': picking_type.use_create_lots and not picking_type.use_existing_lots and not returned_move,
+            'create_lots': picking_type.use_create_lots,
+            'state_done': self.picking_id.state == 'done',
+            'show_reserved': any([lot for lot in self.pack_lot_ids if lot.qty_todo > 0.0])})
+        view_id = self.env.ref('stock.view_pack_operation_lot_form').id
+        return {
+            'name': _('Lot/Serial Number Details'),
+            'type': 'ir.actions.act_window',
+            'view_type': 'form',
+            'view_mode': 'form',
+            'res_model': 'stock.pack.operation',
+            'views': [(view_id, 'form')],
+            'view_id': view_id,
+            'target': 'new',
+            'res_id': self.ids[0],
+            'context': action_ctx}
+    split_lot = action_split_lots
+
 

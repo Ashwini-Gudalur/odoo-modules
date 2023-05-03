@@ -107,6 +107,16 @@
 		                                    t-options='{"widget": "monetary", "display_currency": o.partner_id.currency_id}'/>
 		                            </td>
 		                        </tr>
+
+								<tr  class="border-black">
+		                            <td  ><strong>Round Off Amount</strong></td>
+		                            <td  class="text-right">
+		                                <span t-esc="data['round_off_value']"
+		                                    t-options='{"widget": "monetary", "display_currency": o.partner_id.currency_id}'/>
+		                            </td>
+		                        </tr>
+
+
 	                            <tr >
 	                                <td  ><span >Tax</span></td>
 	                                <td  class="text-right">

@@ -15,8 +15,72 @@ _logger = logging.getLogger(__name__)
 class AccountPayment(models.Model):
     _inherit = 'account.payment'
      
+     
+    # @api.multi
+    # def get_invoice_lines(self):
+    #     print('%%%%%%%%%%%%%%%%%%%%%%')
+    #     provider_name = []
+    #     taxes = 0.0
+    #     amount_untaxed = 0.0
+    #     discount = 0.0
+    #     round_off=0.0
+    #     bill_amount = 0.0
+    #     invoice_data = {'taxes': 0.0,
+    #                     'amount_untaxed': 0.0,
+    #                     'discount': 0.0,
+    #                     'net_amount': 0.0,
+    #                     'previous_balance': 0.0,
+    #                     'bill_amount': 0.0,
+    #                     'paid_amount': 0.0,
+    #                     'outstanding_balance': 0.0,
+    #                     'round_off_value':0.0
+    #                     }
+    #     invoice_lines = []
+    #     for inv in self.invoice_ids:
+    #         sale_order = self.env['sale.order'].search([('name', '=', inv.origin)])
+    #         if sale_order.provider_name:
+    #             provider_name.append(sale_order.provider_name)
+    #         taxes += inv.amount_tax
+    #         amount_untaxed += inv.amount_untaxed
+    #         round_off+=inv.round_off_value
+    #         discount += inv.discount
+    #         bill_amount += inv.amount_total
+    #         for line in inv.invoice_line_ids:
+    #             tax_code = ''
+    #             if line.invoice_line_tax_ids:
+    #                     for tax_name in line.invoice_line_tax_ids:
+    #                         tax_code+=tax_name.name
+    #             invoice_lines.append({'product_name': line.product_id.name,
+    #                                   'expiry_date': line.expiry_date,
+    #                                   'quantity': line.quantity,
+    #                                   'price_unit': line.price_unit,
+    #                                   'tax_code':tax_code,
+    #                                   'taxes':0,
+    #                                   'batch_name':line.lot_id and line.lot_id.name or '',
+    #                                   'price_subtotal': line.price_subtotal})
+    #     invoice_data['invoice_lines'] = invoice_lines
+    #     print(".........round_off...............",round_off)
+    #     if provider_name:
+    #         # print "provider_name:", provider_name
+    #         invoice_data['provider_name'] = ','.join(provider_name)
+    #     else:
+    #         invoice_data['provider_name'] = ''
+    #     invoice_data['taxes'] = taxes
+    #     invoice_data['amount_untaxed'] = amount_untaxed
+    #     invoice_data['round_off_value'] = round_off
+    #     invoice_data['discount'] = discount
+    #     invoice_data['net_amount'] = invoice_data['taxes'] + invoice_data['amount_untaxed'] - invoice_data['discount']
+    #     invoice_data['outstanding_balance'] = self.partner_id.credit or self.partner_id.debit
+    #     print("........................................",self.partner_id.credit)
+    #     print("........................................",self.partner_id.debit)
+    #     invoice_data['paid_amount'] = self.amount
+    #     invoice_data['previous_balance'] = invoice_data['outstanding_balance'] - (bill_amount - invoice_data['paid_amount'])
+    #     invoice_data['bill_amount'] = invoice_data['net_amount'] + invoice_data['previous_balance']
+    #     print(".........222222.....",invoice_data)
+    #     return invoice_data
     @api.multi
     def get_invoice_lines(self):
+        print('$$$$$$$$$$$$$$$$$$$$4')
         _logger.info("Inside inherited AccountPayment")
         invoice_data = super(AccountPayment, self).get_invoice_lines()
         from_zone = tz.gettz('UTC')
@@ -25,6 +89,7 @@ class AccountPayment(models.Model):
         dateofDischarge = ""
         daysinhosp = ""
         Consultant = ""
+        round_off=0
         print("invoice_data===>",invoice_data)
         paid_words = 'Rs ' + convertToWords(int(invoice_data['paid_amount'])) + ' Only'
         if paid_words:
@@ -34,6 +99,7 @@ class AccountPayment(models.Model):
             invoice_data['bill_confirm_date'] = ''
 
         for inv in self.invoice_ids:
+            round_off+=inv.round_off_value
             sale_order = self.env['sale.order'].search([('name', '=', inv.origin)])
             if (sale_order.dateofAdmission and sale_order.dateofDischarge):
                 dateofAdmission = sale_order.dateofAdmission
@@ -59,9 +125,10 @@ class AccountPayment(models.Model):
                 invoice_data['bill_confirm_date'] = inv.date_invoice
             else:
                 invoice_data['bill_confirm_date'] = ''
-
-
-            Consultant = 'NA'
+            if sale_order.provider_name:
+                Consultant = sale_order.provider_name
+            else:
+                Consultant = 'NA'
 
         if Consultant:
             invoice_data['Consultant'] = Consultant
@@ -75,7 +142,7 @@ class AccountPayment(models.Model):
             invoice_data['dateofAdmission'] = ''
             invoice_data['dateofDischarge'] = ''
             invoice_data['daysinhosp'] = ''
-
+        invoice_data['round_off_value'] = round_off
         invoice_data['payment_mode'] = self.journal_id.name
 
         return invoice_data
@@ -138,6 +205,7 @@ class AccountInvoice(models.Model):
 
     @api.multi  
     def get_invoice_lines(self):
+        print('#####################3')
         _logger.info("Inside Insurance print")
         _logger.info("Inside inherited AccountPayment")
         print("====invoicee==>>")
@@ -153,8 +221,12 @@ class AccountInvoice(models.Model):
         paid_words = 'Rs ' + convertToWords(int(self.amount_total)) + ' Only'
         #bill_words = 'Rs ' + convertToWords(int(invoice_data['bill_amount'])) + ' Only'
         invoice_lines_lists = []
-        invoice_lines = []  
+        invoice_lines = []
+        round_off=0.0
         for inv in self:
+            print(inv.round_off_value,'invVVVVVVVVVVVVVVVVV')
+            round_off += inv.round_off_value
+            print('round_off***',round_off)
             sale_order = self.env['sale.order'].search([('name', '=', inv.origin)])
             if (sale_order.dateofAdmission and sale_order.dateofDischarge):
                 dateofAdmission = sale_order.dateofAdmission
@@ -222,14 +294,15 @@ class AccountInvoice(models.Model):
                 print("invoice_lines_lists......................................",invoice_lines_lists)
 
             bill['invoice_lines_lists'] = invoice_lines_lists   
-            bill['amount_untaxed'] = self.amount_untaxed 
+            bill['amount_untaxed'] = self.amount_untaxed
+            bill['round_off_value'] = round_off
             bill['taxes'] = self.amount_tax 
             bill['discount'] = self.discount
             bill['net_amount'] = self.amount_total
             bill['outstanding_balance'] = self.partner_id.credit or self.partner_id.debit
             bill['paid_amount'] = self.amount_total
-            bill['previous_balance'] = bill['outstanding_balance'] + bill['net_amount']
-            bill['bill_amount'] = bill['net_amount'] + bill['previous_balance']
+            bill['previous_balance'] = bill['outstanding_balance'] 
+            bill['bill_amount'] = bill['net_amount']
             
             
             if self.date:

@@ -27,27 +27,28 @@ class AccountInvoice(models.Model):
 
 #     # overridden this method to deduct discounted amount from total of invoice
 
-    @api.one
-    @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount',
-                 'currency_id', 'company_id', 'date_invoice', 'type', 'discount')
-    def _compute_amount(self):
-        round_curr = self.currency_id.round
-        self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line_ids)
-        self.amount_tax = sum(round_curr(line.amount) for line in self.tax_line_ids)
-        amount_total = self.amount_untaxed + self.amount_tax - self.discount
-        self.rounded_total = round(amount_total)
-        self.round_off_value = self.rounded_total - amount_total
-        self.amount_total = self.amount_untaxed + self.amount_tax - self.discount + self.round_off_value
-        amount_total_company_signed = self.amount_total 
-        amount_untaxed_signed = self.amount_untaxed
-        if self.currency_id and self.company_id and self.currency_id != self.company_id.currency_id:
-            currency_id = self.currency_id.with_context(date=self.date_invoice)
-            amount_total_company_signed = currency_id.compute(self.amount_total, self.company_id.currency_id)
-            amount_untaxed_signed = currency_id.compute(self.amount_untaxed, self.company_id.currency_id)
-        sign = self.type in ['in_refund', 'out_refund'] and -1 or 1
-        self.amount_total_company_signed = amount_total_company_signed * sign
-        self.amount_total_signed = self.amount_total * sign
-        self.amount_untaxed_signed = amount_untaxed_signed * sign
+    # @api.one
+    # @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount',
+    #              'currency_id', 'company_id', 'date_invoice', 'type', 'discount')
+    # def _compute_amount(self):
+    #     round_curr = self.currency_id.round
+    #     self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line_ids)
+    #     self.amount_tax = sum(round_curr(line.amount) for line in self.tax_line_ids)
+    #     amount_total = self.amount_untaxed + self.amount_tax - self.discount
+    #     self.rounded_total = round(amount_total)
+    #     self.round_off_value = self.rounded_total - amount_total
+    #     self.amount_total = self.amount_untaxed + self.amount_tax - self.discount + self.round_off_value
+    #     amount_total_company_signed = self.amount_total 
+    #     amount_untaxed_signed = self.amount_untaxed
+    #     if self.currency_id and self.company_id and self.currency_id != self.company_id.currency_id:
+    #         currency_id = self.currency_id.with_context(date=self.date_invoice)
+    #         amount_total_company_signed = currency_id.compute(self.amount_total, self.company_id.currency_id)
+    #         amount_untaxed_signed = currency_id.compute(self.amount_untaxed, self.company_id.currency_id)
+    #     sign = self.type in ['in_refund', 'out_refund'] and -1 or 1
+    #     self.amount_total_company_signed = amount_total_company_signed * sign
+    #     self.amount_total_signed = self.amount_total * sign
+    #     self.amount_untaxed_signed = amount_untaxed_signed * sign
+
 
     discount_type = fields.Selection([('none', 'No Discount'),
                                       ('fixed', 'Fixed'),
@@ -60,21 +61,59 @@ class AccountInvoice(models.Model):
                                   string="Discount Account Head")
 
 
+    # @api.onchange('invoice_line_ids')
+    # def onchange_invoice_lines(self):
+    #     amount_total = self.amount_untaxed + self.amount_tax
+    #     if self.discount_type == 'fixed':
+    #         self.discount_percentage = (self.discount / amount_total) * 100
+    #     elif self.discount_type == 'percentage':
+    #         self.discount = amount_total * self.discount_percentage / 100
+
+    # @api.onchange('discount', 'discount_percentage', 'discount_type')
+    # def onchange_discount(self):
+    #     amount_total = self.amount_untaxed + self.amount_tax
+    #     if self.discount:
+    #         self.discount_percentage = (self.discount / amount_total) * 100
+    #     if self.discount_percentage:
+    #         self.discount = amount_total * self.discount_percentage / 100
+
     @api.onchange('invoice_line_ids')
     def onchange_invoice_lines(self):
         amount_total = self.amount_untaxed + self.amount_tax
         if self.discount_type == 'fixed':
-            self.discount_percentage = (self.discount / amount_total) * 100
+            # self.discount_percentage = (self.discount / amount_total) * 100
+            self.discount_percentage = 0
+            if self.discount > amount_total :
+                raise UserError(_('Discount Amount is more than Amount'))
         elif self.discount_type == 'percentage':
             self.discount = amount_total * self.discount_percentage / 100
+        else:
+            self.discount = 0
+            self.discount_percentage = 0
+        if self.discount_percentage > 100:
+            raise UserError(_('Discount Percentage is more than 100....'))
 
     @api.onchange('discount', 'discount_percentage', 'discount_type')
     def onchange_discount(self):
         amount_total = self.amount_untaxed + self.amount_tax
-        if self.discount:
-            self.discount_percentage = (self.discount / amount_total) * 100
-        if self.discount_percentage:
+        
+        # if self.discount:
+        #     self.discount_percentage = (self.discount / amount_total) * 100
+        # if self.discount_percentage:
+        #     self.discount = amount_total * self.discount_percentage / 100
+        if self.discount_type == 'fixed':
+            # self.discount_percentage = (self.discount / amount_total) * 100
+            self.discount_percentage = 0
+            if self.discount > amount_total :
+                raise UserError(_('Discount Amount is more than Amount'))
+        elif self.discount_type == 'percentage':
             self.discount = amount_total * self.discount_percentage / 100
+        else:
+            self.discount = 0
+            self.discount_percentage = 0
+        if self.discount_percentage > 100:
+            raise UserError(_('Discount Percentage is more than 100....'))
+
 
     @api.multi
     def _find_batch(self, product, qty, location, picking):
@@ -151,35 +190,37 @@ class AccountInvoice(models.Model):
                     res_amount_currency -= amount_currency or 0
                     if i + 1 == len(totlines):
                         amount_currency += res_amount_currency
-                    if self.round_active is True and self.type == 'out_invoice':
+                    # if self.round_active is True and self.type == 'out_invoice':
+                    #     iml.append({
+                    #         'type': 'dest',
+                    #         'name': name,
+                    #         'price': t[1]+self.round_off_value,
+                    #         'account_id': inv.account_id.id,
+                    #         'date_maturity': t[0],
+                    #         'amount_currency': diff_currency and amount_currency,
+                    #         'currency_id': diff_currency and inv.currency_id.id,
+                    #         'invoice_id': inv.id
+                    #     })
+                    #     ir_values = self.env['ir.values']
+                    #     acc_id = ir_values.get_default('account.config.settings', 'round_off_account')
+                    #     iml.append({
+                    #         'type': 'dest',
+                    #         'name': "Round off",
+                    #         'price': -self.round_off_value,
+                    #         'account_id': acc_id,
+                    #         'date_maturity': t[0],
+                    #         'amount_currency': diff_currency and amount_currency,
+                    #         'currency_id': diff_currency and inv.currency_id.id,
+                    #         'invoice_id': inv.id
+                    #     })
+                    # else:
+                    print("**************------------------+++++++++++")
+                    print(".................. t[1] - inv.discount + self.round_off_value", t[1] - inv.discount + self.round_off_value)
+                    if t[1] - inv.discount + self.round_off_value != 0:
                         iml.append({
                             'type': 'dest',
                             'name': name,
-                            'price': t[1]+self.round_off_value,
-                            'account_id': inv.account_id.id,
-                            'date_maturity': t[0],
-                            'amount_currency': diff_currency and amount_currency,
-                            'currency_id': diff_currency and inv.currency_id.id,
-                            'invoice_id': inv.id
-                        })
-                        ir_values = self.env['ir.values']
-                        acc_id = ir_values.get_default('account.config.settings', 'round_off_account')
-                        iml.append({
-                            'type': 'dest',
-                            'name': "Round off",
-                            'price': -self.round_off_value,
-                            'account_id': acc_id,
-                            'date_maturity': t[0],
-                            'amount_currency': diff_currency and amount_currency,
-                            'currency_id': diff_currency and inv.currency_id.id,
-                            'invoice_id': inv.id
-                        })
-                    else:
-
-                        iml.append({
-                            'type': 'dest',
-                            'name': name,
-                            'price': t[1],
+                            'price': t[1] - inv.discount + self.round_off_value,
                             'account_id': inv.account_id.id,
                             'date_maturity': t[0],
                             'amount_currency': diff_currency and amount_currency,
@@ -188,47 +229,155 @@ class AccountInvoice(models.Model):
                         })
 
             else:
-                if self.round_active is True and self.type == 'out_invoice':
+                # if self.round_active is True and self.type == 'out_invoice':
+                #     iml.append({
+                #         'type': 'dest',
+                #         'name': name,
+                #         'price': total + self.round_off_value,
+                #         'account_id': inv.account_id.id,
+                #         'date_maturity': inv.date_due,
+                #         'amount_currency': diff_currency and total_currency,
+                #         'currency_id': diff_currency and inv.currency_id.id,
+                #         'invoice_id': inv.id
+                #     })
+                #     ir_values = self.env['ir.values']
+                #     acc_id = ir_values.get_default('account.config.settings', 'round_off_account')
+                #     iml.append({
+                #         'type': 'dest',
+                #         'name': "Round off",
+                #         'price': -self.round_off_value,
+                #         'account_id': acc_id,
+                #         'date_maturity': inv.date_due,
+                #         'amount_currency': diff_currency and total_currency,
+                #         'currency_id': diff_currency and inv.currency_id.id,
+                #         'invoice_id': inv.id
+                #     })
+                print("++++++++++++++++++++",iml)
+                if self.type == 'out_invoice':
+                    print("....................total - inv.discount + self.round_off_value..........",total - inv.discount + self.round_off_value)
+                    if total - inv.discount + self.round_off_value != 0:
+                        iml.append({
+                            'type': 'dest',
+                            'name': name,
+                            'price': total - inv.discount + self.round_off_value,
+                            'account_id': inv.account_id.id,
+                            'date_maturity': inv.date_due,
+                            'amount_currency': diff_currency and total_currency,
+                            'currency_id': diff_currency and inv.currency_id.id,
+                            'invoice_id': inv.id
+                        })
+                else:
+                    print("............ total + inv.discount - self.round_off_value......", total + inv.discount - self.round_off_value)
+                    if total + inv.discount - self.round_off_value != 0:
+                        iml.append({
+                            'type': 'dest',
+                            'name': name,
+                            'price': total + inv.discount - self.round_off_value,
+                            'account_id': inv.account_id.id,
+                            'date_maturity': inv.date_due,
+                            'amount_currency': diff_currency and total_currency,
+                            'currency_id': diff_currency and inv.currency_id.id,
+                            'invoice_id': inv.id
+                        })
+            if self.discount>0 and self.type == 'out_invoice':
+                # iml.append({
+                #     'type': 'dest',
+                #     'name': name,
+                #     'price':-self.discount,
+                #     'account_id': inv.account_id.id,
+                #     'date_maturity': inv.date_due,
+                #     'amount_currency': diff_currency and total_currency,
+                #     'currency_id': diff_currency and inv.currency_id.id,
+                #     'invoice_id': inv.id
+                # })
+                iml.append({
+                    'type': 'dest',
+                    'name': "Discount",
+                    'price': self.discount,
+                    'account_id': inv.disc_acc_id.id,
+                    'date_maturity': inv.date_due,
+                    'amount_currency': diff_currency and total_currency,
+                    'currency_id': diff_currency and inv.currency_id.id,
+                    'invoice_id': inv.id
+                })
+            else:
+                # iml.append({
+                #     'type': 'dest',
+                #     'name': name,
+                #     'price':self.discount,
+                #     'account_id': inv.account_id.id,
+                #     'date_maturity': inv.date_due,
+                #     'amount_currency': diff_currency and total_currency,
+                #     'currency_id': diff_currency and inv.currency_id.id,
+                #     'invoice_id': inv.id
+                # })
+                if self.discount>0:
                     iml.append({
                         'type': 'dest',
-                        'name': name,
-                        'price': total + self.round_off_value,
-                        'account_id': inv.account_id.id,
+                        'name': "Discount",
+                        'price': -self.discount,
+                        'account_id': inv.disc_acc_id.id,
                         'date_maturity': inv.date_due,
                         'amount_currency': diff_currency and total_currency,
                         'currency_id': diff_currency and inv.currency_id.id,
                         'invoice_id': inv.id
                     })
+            if self.round_active  and self.type == 'out_invoice':
+                if  self.round_off_value !=0:
+                # iml.append({
+                #             'type': 'dest',
+                #             'name': name,
+                #             'price': self.round_off_value,
+                #             'account_id': inv.account_id.id,
+                #             'date_maturity': inv.date_due,
+                #             'amount_currency': diff_currency and amount_currency,
+                #             'currency_id': diff_currency and inv.currency_id.id,
+                #             'invoice_id': inv.id
+                #         })
                     ir_values = self.env['ir.values']
                     acc_id = ir_values.get_default('account.config.settings', 'round_off_account')
                     iml.append({
                         'type': 'dest',
                         'name': "Round off",
-                        'price': -self.round_off_value,
+                        'price': -1* self.round_off_value,
                         'account_id': acc_id,
                         'date_maturity': inv.date_due,
-                        'amount_currency': diff_currency and total_currency,
+                        'amount_currency': diff_currency and amount_currency,
                         'currency_id': diff_currency and inv.currency_id.id,
                         'invoice_id': inv.id
                     })
-                else:
+            else:
+                # iml.append({
+                #             'type': 'dest',
+                #             'name': name,
+                #             'price': -self.round_off_value,
+                #             'account_id': inv.account_id.id,
+                #             'date_maturity': inv.date_due,
+                #             'amount_currency': diff_currency and amount_currency,
+                #             'currency_id': diff_currency and inv.currency_id.id,
+                #             'invoice_id': inv.id
+                #         })
+                if  self.round_off_value !=0:
+                    ir_values = self.env['ir.values']
+                    acc_id = ir_values.get_default('account.config.settings', 'round_off_account')
                     iml.append({
                         'type': 'dest',
-                        'name': name,
-                        'price': total,
-                        'account_id': inv.account_id.id,
+                        'name': "Round off",
+                        'price': self.round_off_value,
+                        'account_id': acc_id,
                         'date_maturity': inv.date_due,
-                        'amount_currency': diff_currency and total_currency,
+                        'amount_currency': diff_currency and amount_currency,
                         'currency_id': diff_currency and inv.currency_id.id,
                         'invoice_id': inv.id
                     })
+        
             part = self.env['res.partner']._find_accounting_partner(inv.partner_id)
             line = [(0, 0, self.line_get_convert(l, part.id)) for l in iml]
             line = inv.group_lines(iml, line)
 
             journal = inv.journal_id.with_context(ctx)
             line = inv.finalize_invoice_move_lines(line)
-
+            print(".................",line)
             date = inv.date or inv.date_invoice
             move_vals = {
                 'ref': inv.reference,
@@ -253,6 +402,139 @@ class AccountInvoice(models.Model):
             }
             inv.with_context(ctx).write(vals)
         return True
+
+    # @api.multi
+    # def action_move_create(self):
+        
+    #     #This method is overriden to pass the Discount Journal Entry.
+    #     """ Creates invoice related analytics and financial move lines """
+    #     account_move = self.env['account.move']
+
+    #     for inv in self:
+    #         if not inv.journal_id.sequence_id:
+    #             raise UserError(_('Please define sequence on the journal related to this invoice.'))
+    #         if not inv.invoice_line_ids:
+    #             raise UserError(_('Please create some invoice lines.'))
+    #         if inv.move_id:
+    #             continue
+
+    #         ctx = dict(self._context, lang=inv.partner_id.lang)
+
+    #         if not inv.date_invoice:
+    #             inv.with_context(ctx).write({'date_invoice': fields.Date.context_today(self)})
+    #         company_currency = inv.company_id.currency_id
+
+    #         # create move lines (one per invoice line + eventual taxes and analytic lines)
+    #         iml = inv.invoice_line_move_line_get()
+    #         iml += inv.tax_line_move_line_get()
+
+    #         diff_currency = inv.currency_id != company_currency
+    #         # create one move line for the total and possibly adjust the other lines amount
+    #         total, total_currency, iml = inv.with_context(ctx).compute_invoice_totals(company_currency, iml)
+
+    #         name = inv.name or '/'
+    #         if inv.payment_term_id:
+    #             totlines = inv.with_context(ctx).payment_term_id.with_context(currency_id=company_currency.id).compute(total, inv.date_invoice)[0]
+    #             res_amount_currency = total_currency
+    #             ctx['date'] = inv._get_currency_rate_date()
+    #             for i, t in enumerate(totlines):
+    #                 if inv.currency_id != company_currency:
+    #                     amount_currency = company_currency.with_context(ctx).compute(t[1], inv.currency_id)
+    #                 else:
+    #                     amount_currency = False
+
+    #                 # last line: add the diff
+    #                 res_amount_currency -= amount_currency or 0
+    #                 if i + 1 == len(totlines):
+    #                     amount_currency += res_amount_currency
+
+    #                 iml.append({
+    #                     'type': 'dest',
+    #                     'name': name,
+    #                     'price': t[1],
+    #                     'account_id': inv.account_id.id,
+    #                     'date_maturity': t[0],
+    #                     'amount_currency': diff_currency and amount_currency,
+    #                     'currency_id': diff_currency and inv.currency_id.id,
+    #                     'invoice_id': inv.id
+    #                 })
+    #         else:
+    #             iml.append({
+    #                 'type': 'dest',
+    #                 'name': name,
+    #                 'price': total,
+    #                 'account_id': inv.account_id.id,
+    #                 'date_maturity': inv.date_due,
+    #                 'amount_currency': diff_currency and total_currency,
+    #                 'currency_id': diff_currency and inv.currency_id.id,
+    #                 'invoice_id': inv.id
+    #             })
+    #         part = self.env['res.partner']._find_accounting_partner(inv.partner_id)
+    #         line = [(0, 0, self.line_get_convert(l, part.id)) for l in iml]
+    #         line = inv.group_lines(iml, line)
+
+    #         journal = inv.journal_id.with_context(ctx)
+    #         line = inv.finalize_invoice_move_lines(line)
+    #         date = inv.date or inv.date_invoice
+    #         move_vals = {
+    #             'ref': inv.reference,
+    #             'line_ids': line,
+    #             'journal_id': journal.id,
+    #             'date': date,
+    #             'narration': inv.comment,
+    #         }
+    #         ctx['company_id'] = inv.company_id.id
+    #         ctx['invoice'] = inv
+    #         ctx_nolang = ctx.copy()
+    #         ctx_nolang.pop('lang', None)
+    #         move = account_move.with_context(ctx_nolang).create(move_vals)
+    #         #=============Customized code starts=========
+    #         print("..........",inv.discount)
+    #         if inv.discount:
+    #             if inv.type == 'out_refund':
+    #                 move_line = move.line_ids.filtered(lambda l:l.name==inv.name)
+    #                 move_line.credit -= inv.discount
+    #                 move_line_vals = {
+    #                 'name':'Discount',
+    #                 'company_id':move.company_id.id,
+    #                 'account_id':inv.disc_acc_id.id,
+    #                 'credit':inv.discount,
+    #                 'date_maturity':date,
+    #                 'currency_id': diff_currency and inv.currency_id.id,
+    #                 'invoice_id': inv.id,
+    #                 'partner_id':move_line.partner_id.id,
+    #                 'move_id':move.id,
+    #                 }
+    #                 self.env['account.move.line'].create(move_line_vals)
+
+    #             else:
+    #                 move_line = move.line_ids.filtered(lambda l:l.name=='/')
+    #                 move_line.debit -= inv.discount
+    #                 move_line_vals = {
+    #                 'name':'Discount',
+    #                 'company_id':move.company_id.id,
+    #                 'account_id':inv.disc_acc_id.id,
+    #                 'debit':inv.discount,
+    #                 'date_maturity':date,
+    #                 'currency_id': diff_currency and inv.currency_id.id,
+    #                 'invoice_id': inv.id,
+    #                 'partner_id':move_line.partner_id.id,
+    #                 'move_id':move.id,
+    #                 }
+    #                 self.env['account.move.line'].create(move_line_vals)
+                
+    #         #===========Customized code ends=============
+    #         # Pass invoice in context in method post: used if you want to get the same
+    #         # account move reference when creating the same invoice after a cancelled one:
+    #         move.post()
+    #         # make the invoice point to that move
+    #         vals = {
+    #             'move_id': move.id,
+    #             'date': date,
+    #             'move_name': move.name,
+    #         }
+    #         inv.with_context(ctx).write(vals)
+    #     return True
 
     @api.model
     def _prepare_refund(self, invoice, date_invoice=None, date=None, description=None, journal_id=None):
@@ -370,13 +652,15 @@ class AccountInvoice(models.Model):
                 self.has_outstanding = True
 
     def write(self, vals):
+        print(vals)
         res = super(AccountInvoice, self).write(vals)
         if not self.payment_ids and self.type == 'out_refund' and self.state == 'paid':
             payment_id = self.env['account.payment'].search([('invoice_id', '=', self.id)])
             if payment_id:
                 self.payment_ids = [(6, 0, self.payment_id.ids)]
         return res
-
+    
+    
     @api.one
     @api.depends(
         'state', 'currency_id', 'invoice_line_ids.price_subtotal',
@@ -395,12 +679,15 @@ class AccountInvoice(models.Model):
                     from_currency = (line.currency_id and line.currency_id.with_context(
                         date=line.date)) or line.company_id.currency_id.with_context(date=line.date)
                     residual += from_currency.compute(line.amount_residual, self.currency_id)
-        if self.round_active is True and self.type == 'out_refund':
-            residual = abs(residual) - self.discount + self.round_off_value
-            residual_company_signed = abs(residual_company_signed) - self.discount + self.round_off_value
-        else:
-            residual = abs(residual) - self.discount
-            residual_company_signed = abs(residual_company_signed) - self.discount
+        # if self.round_active is True and self.type == 'out_refund':
+        #     residual = abs(residual) - self.discount 
+        #     residual_company_signed = abs(residual_company_signed) - self.discount  
+        # elif self.round_active  :
+        #     residual = abs(residual) - self.discount 
+        #     residual_company_signed = abs(residual_company_signed) - self.discount 
+        # else:
+        #     residual = abs(residual) - self.discount
+        #     residual_company_signed = abs(residual_company_signed) - self.discount
         self.residual_company_signed = abs(residual_company_signed) * sign
         self.residual_signed = abs(residual) * sign
         if self.round_active is True and self.type == 'out_invoice':
@@ -414,5 +701,28 @@ class AccountInvoice(models.Model):
             self.reconciled = False
     
 
-
-
+    @api.one
+    @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount', 'currency_id', 'company_id',
+                 'date_invoice', 'type')
+    def _compute_amount(self):
+        self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line_ids)
+        self.amount_tax = sum(line.amount for line in self.tax_line_ids)
+        total_amount = self.amount_untaxed + self.amount_tax - self.discount
+        if self.round_active:
+            self.rounded_total = round(total_amount)
+            self.round_off_value = round(self.rounded_total - total_amount,2)
+            self.amount_total = self.rounded_total
+        else:
+            self.rounded_total = 0
+            self.round_off_value = 0
+            self.amount_total = self.amount_untaxed + self.amount_tax - self.discount
+        amount_total_company_signed = self.amount_total
+        amount_untaxed_signed = self.amount_untaxed
+        if self.currency_id and self.company_id and self.currency_id != self.company_id.currency_id:
+            currency_id = self.currency_id.with_context(date=self.date_invoice)
+            amount_total_company_signed = currency_id.compute(self.amount_total, self.company_id.currency_id)
+            amount_untaxed_signed = currency_id.compute(self.amount_untaxed, self.company_id.currency_id)
+        sign = self.type in ['in_refund', 'out_refund'] and -1 or 1
+        self.amount_total_company_signed = amount_total_company_signed * sign
+        self.amount_total_signed = self.amount_total * sign
+        self.amount_untaxed_signed = amount_untaxed_signed * sign

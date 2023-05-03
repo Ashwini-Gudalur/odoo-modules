@@ -86,7 +86,9 @@ class bulk_inv_payment(models.TransientModel):
     @api.multi
     def process_payment(self):
         vals=[]
+        shop_id = False
         for line in self.invoice_ids:
+            shop_id = line.invoice_id.shop_id
             if line.paid_amount > 0.0:
                 vals.append({
                     'invoice_id':line.invoice_id or False,
@@ -104,6 +106,7 @@ class bulk_inv_payment(models.TransientModel):
             if not payment_method_id:
                 payment_method_id= self.env['account.payment.method'].search([],limit=1)
             pay_val={
+                'shop_id':shop_id.id,
                 'payment_type':self.payment_type,
                 'payment_date':self.payment_date,
                 'partner_type':self.partner_type,

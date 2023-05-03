@@ -8,7 +8,7 @@ from odoo.exceptions import UserError
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
-    
+   
     # this method is overridden to update cost_price, sale_price and mrp while lot is getting created
     def _create_lots_for_picking(self):
         Lot = self.env['stock.production.lot']
@@ -173,6 +173,7 @@ class StockPackOperationLot(models.Model):
     _inherit = 'stock.pack.operation.lot'
 
     sale_line =  fields.Many2one('sale.order.line',string="Sale Order Line")
+    
 
 class ProcurementOrder(models.Model):
     _inherit = "procurement.order"

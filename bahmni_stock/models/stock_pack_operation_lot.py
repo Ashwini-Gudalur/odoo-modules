@@ -17,6 +17,8 @@ class StockPackOperation(models.Model):
 
     @api.multi
     def save(self):
+        import traceback
+        traceback.print_stack()
         '''This method is overridden to restrict user from assigning expired lots'''
         # TDE FIXME: does not seem to be used -> actually, it does
         # TDE FIXME: move me somewhere else, because the return indicated a wizard, in pack op, it is quite strange
@@ -30,9 +32,22 @@ class StockPackOperation(models.Model):
                     if lot.expiry_date and lot.lot_id:
                         lot.lot_id.life_date = lot.expiry_date
                         lot.lot_id.use_date = lot.expiry_date
-                        lot.lot_id.mrp = lot.mrp
-                        lot.lot_id.sale_price = lot.sale_price
-                        lot.lot_id.cost_price = lot.cost_price
+                        if lot.mrp > 0:
+                            lot.lot_id.mrp = lot.mrp
+                        else:
+                            if lot.mrp == 0:
+                               lot.mrp = lot.lot_id.mrp 
+
+                        if lot.sale_price >0:
+                            lot.lot_id.sale_price = lot.sale_price
+                        else:
+                            if lot.sale_price == 0:
+                               lot.sale_price = lot.lot_id.sale_price
+                        if lot.cost_price>0:
+                            lot.lot_id.cost_price = lot.cost_price
+                        else:
+                            if lot.cost_price == 0:
+                               lot.cost_price = lot.lot_id.cost_price
                     #lot.lot_id.mrp = mrp
                     #lot.lot_id.cost_price = unit_price
                     #lot.lot_id.sale_price = unit_price
@@ -85,6 +100,7 @@ class StockPackOperationLot(models.Model):
     _inherit = 'stock.pack.operation.lot'
 
     available_qty = fields.Integer(string="Available Qty")
+
     
     # location_lot_line_id = fields.Many2one('location.stock.quant', string="Lot/serial Number")
 

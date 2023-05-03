@@ -41,8 +41,11 @@ class SaleOrder(models.Model):
             else:
                 discount = order.discount
             amount_total = amount_total - discount
-            rounded_total = round(amount_total)
-            round_off_value =  rounded_total - amount_total
+            rounded_total =0
+            round_off_value = 0
+            if order.round_active:
+                rounded_total = round(amount_total)
+                round_off_value =  rounded_total - amount_total
             order.update({
                 'amount_untaxed': order.pricelist_id.currency_id.round(amount_untaxed),
                 'amount_tax': order.pricelist_id.currency_id.round(amount_tax),
@@ -59,14 +62,16 @@ class SaleOrder(models.Model):
             order.total_outstanding_balance = 0.0
             total_receivable = order._total_receivable()
             order.prev_outstanding_balance = total_receivable
+            print("........prev_outstanding_balance",total_receivable)
     
     def _total_receivable(self):
         receivable = 0.0
         if self.partner_id:
-            self._cr.execute("""SELECT l.partner_id, at.type, SUM(l.debit-l.credit)
+            self._cr.execute("""SELECT l.partner_id, at.type, SUM(l.debit-l.credit) 
                           FROM account_move_line l
                           LEFT JOIN account_account a ON (l.account_id=a.id)
                           LEFT JOIN account_account_type at ON (a.user_type_id=at.id)
+                          lEFT JOIN account_invoice ac on(ac.id = l.invoice_id)
                           WHERE at.type IN ('receivable','payable')
                           AND l.partner_id = %s
                           AND l.full_reconcile_id IS NULL
@@ -76,6 +81,7 @@ class SaleOrder(models.Model):
                 if val is None:
                     val=0
                 receivable = (type == 'receivable') and val or -val
+
         return receivable
 
     @api.depends('partner_id')
@@ -130,26 +136,65 @@ class SaleOrder(models.Model):
         '''Calculate discount amount, when discount is entered in terms of %'''
         amount_total = self.amount_untaxed + self.amount_tax
         if self.discount_type == 'fixed':
-            if self.discount >0 and amount_total >0:
-                self.discount_percentage = self.discount/amount_total * 100
+            self.discount_percentage = 0
+            # if self.discount >0 and amount_total >0:
+            #     self.discount_percentage = self.discount/amount_total * 100
+            if self.discount > amount_total :
+                raise UserError(_('Discount Amount is more than Amount'))
         elif self.discount_type == 'percentage':
             self.discount = amount_total * self.discount_percentage / 100
 
+        if self.discount_percentage > 100:
+            raise UserError(_('Discount Percentage is more than 100....'))
+
+
+    def write(self, vals):
+        print(vals)
+        res = super(SaleOrder, self).write(vals)
+        amount_total = self.amount_untaxed + self.amount_tax
+        if self.discount > amount_total :
+            raise UserError(_('Discount Amount is more than Amount'))
+        if self.discount_percentage > 100:
+            raise UserError(_('Discount Percentage is more than 100....')) 
+        return res
+    
+    @api.model
+    def create(self, vals):
+        res = super(SaleOrder, self).create(vals)
+        amount_total = res.amount_untaxed + res.amount_tax
+        if res.discount > amount_total :
+            raise UserError(_('Discount Amount is more than Amount'))
+        if res.discount_percentage > 100:
+            raise UserError(_('Discount Percentage is more than 100....')) 
+        return res
+    
     @api.onchange('discount', 'discount_percentage', 'discount_type', 'chargeable_amount')
     def onchange_discount(self):
         self.onchange_order_line()
         amount_total = self.amount_untaxed + self.amount_tax
-        if self.chargeable_amount:
-            if self.discount_type == 'none' and self.chargeable_amount:
-                self.discount_type = 'fixed'
-                discount = amount_total - self.chargeable_amount
-                self.discount_percentage = (discount / amount_total) * 100
+        # if self.chargeable_amount:
+        #     if self.discount_type == 'none' and self.chargeable_amount:
+        #         self.discount_type = 'fixed'
+        #         discount = amount_total - self.chargeable_amount
+        #         self.discount_percentage = (discount / amount_total) * 100
+        # else:
+        #     # if self.discount:
+        #     #     self.discount_percentage = (self.discount / amount_total) * 100
+        #     if self.discount_percentage:
+        #         self.discount = amount_total * self.discount_percentage / 100
+        
+        if self.discount_type == 'fixed':
+            # self.discount_percentage = (self.discount / amount_total) * 100
+            self.discount_percentage = 0
+            if self.discount > amount_total :
+                raise UserError(_('Discount Amount is more than Amount'))
+        elif self.discount_type == 'percentage':
+            self.discount = amount_total * self.discount_percentage / 100
         else:
-            if self.discount:
-                self.discount_percentage = (self.discount / amount_total) * 100
-            if self.discount_percentage:
-                self.discount = amount_total * self.discount_percentage / 100
-
+            self.discount = 0
+            self.discount_percentage = 0
+        if self.discount_percentage > 100:
+            raise UserError(_('Discount Percentage is more than 100....'))
     @api.model
     def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
         '''1. make percentage and discount field readonly, when chargeable amount is allowed to enter'''
@@ -326,6 +371,7 @@ class SaleOrder(models.Model):
                                         # move_obj = operation_link_obj.move_id
                                     
                                         for lot in lot_ids:
+                                            print("------------------------0000")
                                             pack_operation_lot.write({
                                                 'lot_name': lot.name,
                                                 'qty': line.product_uom_qty,
@@ -427,3 +473,32 @@ class SaleOrder(models.Model):
                     message = "<b>Auto validation Failed</b> <br/> <b>Reason:</b> The Total amount is 0 So, Can't Register Payment."
                     inv.message_post(body=message)
 
+
+class account_register_payments(models.TransientModel):
+    _inherit = "account.register.payments"
+
+
+    def get_payment_vals(self):
+        shop_id= False
+        for inv in self._get_invoices():
+            if inv.shop_id:
+                shop_id = inv.shop_id
+                break
+        return {
+            'journal_id': self.journal_id.id,
+            'payment_method_id': self.payment_method_id.id,
+            'payment_date': self.payment_date,
+            'communication': self.communication,
+            'invoice_ids': [(4, inv.id, None) for inv in self._get_invoices()],
+            'shop_id':shop_id.id,
+            'payment_type': self.payment_type,
+            'amount': self.amount,
+            'currency_id': self.currency_id.id,
+            'partner_id': self.partner_id.id,
+            'partner_type': self.partner_type,
+        }
+    @api.multi
+    def create_payment(self):
+        payment = self.env['account.payment'].create(self.get_payment_vals())
+        payment.post()
+        return {'type': 'ir.actions.act_window_close'}

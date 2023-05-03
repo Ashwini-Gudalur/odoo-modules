@@ -19,11 +19,30 @@ class AccountAbstractPayment(models.AbstractModel):
 class AccountPayment(models.Model):
     _inherit = 'account.payment'
 
+    def _total_receivable(self):
+        receivable = 0.0
+        if self.partner_id:
+            self._cr.execute("""SELECT l.partner_id, at.type, SUM(l.debit-l.credit)
+                          FROM account_move_line l
+                          LEFT JOIN account_account a ON (l.account_id=a.id)
+                          LEFT JOIN account_account_type at ON (a.user_type_id=at.id)
+                          lEFT JOIN account_invoice ac on(ac.id = l.invoice_id)
+                          WHERE at.type IN ('receivable','payable')
+                          AND l.partner_id = %s
+                          AND l.full_reconcile_id IS NULL
+                          GROUP BY l.partner_id, at.type
+                          """, (self.partner_id.id,))
+            for pid, type, val in self._cr.fetchall():
+                if val is None:
+                    val=0
+                receivable = (type == 'receivable') and val or -val
+
+        return receivable
+
     @api.onchange('partner_id', 'amount')
     def _calculate_balances(self):
         for rec in self:
-            partner = rec.partner_id
-            balance = (partner.credit or partner.debit)
+            balance = rec._total_receivable()
             if(rec.state != 'posted'):
                 rec.balance_before_pay = balance
                 rec.total_balance = balance - rec.amount
