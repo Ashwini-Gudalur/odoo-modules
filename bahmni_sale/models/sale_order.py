@@ -83,6 +83,52 @@ class SaleOrder(models.Model):
                 receivable = (type == 'receivable') and val or -val
 
         return receivable
+    def invoice_unbalance_list(self):
+        sale_order_ids = self.env['sale.order'].sudo().search([])
+        for order in sale_order_ids :
+            invoices = order.mapped('invoice_ids')
+            for invoice in invoices:
+                if int(order.discount) != int(invoice.discount):
+                    if invoice.discount_percentage == 100:
+                        if invoice.state in ('paid','open'):
+                            if invoice.id not in (5798,2527) :
+                                # _logger.info('\n ************......order......:%s \n',order.name)
+                                # _logger.error("\n ************......order......:%s \n",order.name)
+                                print("************......order......",order.name)
+
+
+
+
+    def invoice_unbalance(self):
+        list_invoice =[]
+        sale_order_ids = self.env['sale.order'].sudo().search([])
+        for order in sale_order_ids :
+            invoices = order.mapped('invoice_ids')
+            
+            for invoice in invoices:
+                if int(order.discount) != int(invoice.discount):
+                    if invoice.discount_percentage == 100:
+             
+                        if invoice.state in ('paid','open'):
+                            if invoice.id not in (5798,2527,8065) :
+                                print(".......................",order.name)
+                                print(".......................",invoices)
+                                invoice.sudo().discount_type = order.discount_type 
+                                invoice.sudo().action_invoice_cancel()
+                                invoice.sudo().action_invoice_draft()
+                                invoice.sudo().onchange_discount()
+                                invoice.sudo()._compute_amount()
+                                
+                                list_invoice.append(invoice.id)
+                             
+        # if  list_invoice :            
+        #     invoice_ids = self.env['account.invoice'].sudo().search([('id','in',list_invoice)]) 
+        #     for invoice in invoice_ids:
+        #         if invoice.state == 'draft':
+        #             invoice.onchange_discount()
+        #             invoice.action_invoice_cancel()
+        #             invoice._compute_amount()
+        #             invoice.action_invoice_draft()
 
     @api.depends('partner_id')
     def _get_partner_details(self):
@@ -135,6 +181,7 @@ class SaleOrder(models.Model):
     def onchange_order_line(self):
         '''Calculate discount amount, when discount is entered in terms of %'''
         amount_total = self.amount_untaxed + self.amount_tax
+        print(".........amount_total........",amount_total)
         if self.discount_type == 'fixed':
             self.discount_percentage = 0
             # if self.discount >0 and amount_total >0:
@@ -172,6 +219,7 @@ class SaleOrder(models.Model):
     def onchange_discount(self):
         self.onchange_order_line()
         amount_total = self.amount_untaxed + self.amount_tax
+        print("................amount_total.............",amount_total)
         # if self.chargeable_amount:
         #     if self.discount_type == 'none' and self.chargeable_amount:
         #         self.discount_type = 'fixed'
@@ -272,7 +320,10 @@ class SaleOrder(models.Model):
 
                 # Necessary to force computation of taxes. In account_invoice, they are triggered
                 # by onchanges, which are not triggered when doing a create.
+                created_invoice.onchange_discount()
+                created_invoice._compute_amount()
                 created_invoice.compute_taxes()
+               
                 created_invoice.message_post_with_view('mail.message_origin_link',
                     values={'self': created_invoice, 'origin': order},
                     subtype_id=self.env.ref('mail.mt_note').id)

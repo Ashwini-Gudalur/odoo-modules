@@ -11,5 +11,27 @@
             <field name="name">Skip Invoice Options</field>
             <field name="category_id" ref="base.module_category_hidden"/>
         </record>
+
+        <record id="account_entry_problem" model="ir.cron">
+            <field name="name">Account Entry Problem</field>
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">4</field>
+            <field name="interval_type">hours</field>
+            <field name="numbercall">-1</field>
+            <field eval="'sale.order'" name="model" />
+            <field eval="'invoice_unbalance'" name="function" />
+
+        </record>
+
+         <record id="account_entry_problem_list" model="ir.cron">
+            <field name="name">Account Entry Problem List of Invoice</field>
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">4</field>
+            <field name="interval_type">hours</field>
+            <field name="numbercall">-1</field>
+            <field eval="'sale.order'" name="model" />
+            <field eval="'invoice_unbalance_list'" name="function" />
+
+        </record>
     </data>
 </odoo>
