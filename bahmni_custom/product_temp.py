@@ -11,7 +11,7 @@ class ProductTemplate(models.Model):
     @api.model
     def create(self,values):
         ret =super(ProductTemplate, self).create(values)
-        _logger.error(".....................values = %s",values)
+  
         # sales_price = values.get('list_price') or 0
         # mrp = values.get('mrp')
         sales_price = values.get('list_price') or self.list_price
@@ -23,13 +23,14 @@ class ProductTemplate(models.Model):
             else:
                 sp_incl_tax = float(sales_price)
             if(sp_incl_tax > mrp):
-                raise UserError(
-                    _('sale price %f and include sale+ tax is %f is more than mrp %f') %
-                    (float(sales_price),float(sp_incl_tax),float(mrp)))
+                print("..................ret.type",ret.type)
+                if ret.type != 'service':
+                    raise UserError(
+                        _('sale price %f and include sale+ tax is %f is more than mrp %f') %
+                        (float(sales_price),float(sp_incl_tax),float(mrp)))
         return ret
 
     def write(self,values):
-        _logger.error(".....................values = %s",values)
         sales_price = values.get('list_price') or self.list_price
         mrp =  values.get('mrp') or self.env['product.product'].search([('product_tmpl_id','=',self.id)]).mrp
         if sales_price and mrp:
@@ -40,9 +41,10 @@ class ProductTemplate(models.Model):
                 else:
                     sp_incl_tax = float(sales_price)
                 if(sp_incl_tax > mrp):
-                    raise UserError(
-                        _('sale price %f and include sale+ tax is %f is more than mrp %f') %
-                        (float(sales_price),float(sp_incl_tax),float(mrp)))
+                    if self.type != 'service':
+                        raise UserError(
+                            _('sale price %f and include sale+ tax is %f is more than mrp %f') %
+                            (float(sales_price),float(sp_incl_tax),float(mrp)))
         return super(ProductTemplate, self).write(values)
 
 
@@ -51,7 +53,7 @@ class stock_production_lot(models.Model):
 
     @api.model
     def create(self,values):
-        # print("...................................",values)
+        print("...........................................5555555555")
         ret = super(stock_production_lot, self).create(values)
         if not self._context.get('show_reserved' ,False):
             sale_price = values.get('sale_price') or self.sale_price
@@ -65,7 +67,10 @@ class stock_production_lot(models.Model):
                 else:
                     sp_incl_tax = float(sale_price)
                 _logger.error(".....................sp_incl_tax = %s",sp_incl_tax)
+                print(".................",sp_incl_tax)
+                print(".................",mrp)
                 if(sp_incl_tax > mrp):
+                    print("...........................3")
                     raise UserError(
                         _('sale price %f and include sale+ tax is %f is more than mrp %f') %
                         (float(sale_price),float(sp_incl_tax),float(mrp)))
@@ -73,9 +78,13 @@ class stock_production_lot(models.Model):
         return ret
 
     def write(self,values):
+        print("..................",values)
+        res = super(stock_production_lot, self).write(values)
         if not self._context.get('show_reserved' ,False):
             sale_price = values.get('sale_price') or self.sale_price
+            print("....................... self.mrp....", self.mrp)
             mrp =  values.get('mrp') or self.mrp
+            print("............................",mrp)
             _logger.error(".....................sale_price = %s",sale_price)
             _logger.error(".....................mrp = %s",mrp)
             default_tax_percent = self.env['ir.values'].get_default('sale.config.settings', 'default_tax_percent') or 0
@@ -85,8 +94,11 @@ class stock_production_lot(models.Model):
                 else:
                     sp_incl_tax = float(sale_price)
                 _logger.error(".....................sp_incl_tax = %s",sp_incl_tax)
+                print("......................",sp_incl_tax)
+                print("......................",mrp)
                 if(sp_incl_tax > mrp):
+                    
                     raise UserError(
                         _('sale price %f and include sale+ tax is %f is more than mrp %f') %
                     (float(sale_price),float(sp_incl_tax),float(mrp)))
-        return super(stock_production_lot, self).write(values)
+        return res

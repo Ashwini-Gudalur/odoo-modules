@@ -36,4 +36,5 @@
                   parent="stock.menu_warehouse_report"
                   sequence="4"/>
     </data>
+
 </odoo>

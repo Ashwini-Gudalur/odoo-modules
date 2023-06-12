@@ -365,7 +365,6 @@ class sale_order_line(models.Model):
 
     @api.onchange('location_lot_line_id')
     def onchange_location_lot_line_id(self):
-        print(".........................kavin")
         if self.location_lot_line_id:
             self.lot_id = self.location_lot_line_id.lot_id
         else:
@@ -541,6 +540,7 @@ class stock_quant(models.Model):
 class location_stock_quant(models.Model):
 
     _name = 'location.stock.quant'
+    _rec_name="lot_id"
 
     qty = fields.Float('Quantity')
     location_id = fields.Many2one('stock.location', 'Location')
@@ -569,10 +569,8 @@ class location_stock_quant(models.Model):
     @api.multi
     def name_get(self):
         res = []
-        print(".....................",self.search([('id','in',self.ids)], order='life_date asc'))
         for record in self.search([('id','in',self.ids)], order='life_date asc'):
             lot_name = record.lot_id.name
-            print("...............",record.lot_id.life_date)
             if(record.lot_id.life_date):
                 expiry_date = datetime.strptime(record.lot_id.life_date, '%Y-%m-%d %H:%M:%S')
                 expiry = expiry_date.strftime("%b,%Y")
@@ -679,8 +677,6 @@ class Picking(models.Model):
 class StockPackOperationLot(models.Model):
     _inherit = 'stock.pack.operation.lot'
 
-    location_lot_line_id = fields.Many2one('location.stock.quant', string="Lot/Serial Number")
-
     @api.onchange('location_lot_line_id')
     def onchange_location_lot_line_id(self):
         if self.location_lot_line_id:
@@ -690,6 +686,8 @@ class StockPackOperationLot(models.Model):
 
     @api.model
     def create(self, vals):
+        import traceback
+        traceback.print_stack()
         ret =super(StockPackOperationLot, self).create(vals)
         if ret.operation_id.picking_id.picking_type_id.code == 'incoming':
             if (ret.mrp or not vals.get('mrp')) == 0:
@@ -717,6 +715,9 @@ class StockPackOperationLot(models.Model):
         return ret
 
     def write(self, vals):
+        print(".................................222222222222222222222")
+        import traceback
+        traceback.print_stack()
         ret =super(StockPackOperationLot, self).write(vals)
         if self.operation_id.picking_id.picking_type_id.code == 'incoming':
             if self.mrp == 0:

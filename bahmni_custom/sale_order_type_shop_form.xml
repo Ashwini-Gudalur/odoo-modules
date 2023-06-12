@@ -154,7 +154,6 @@
                  options="{'no_create_edit': True}" context="{'form_view_ref' : 'bahmni_custom.location_stock_quant_view_from'}" />
 				
 			</xpath>
-			
 		</field>
 	</record>
 
@@ -174,9 +173,6 @@
                             domain="[('product_id','=', parent.product_id),('life_date', '&gt;=', datetime.datetime.now()),('product_qty','>',0)]"
                             context="{'default_product_id': parent.product_id, 'active_pack_operation': parent.id}"/>
 			</xpath>
-
-            
-
 		</field>
 	</record>
 
