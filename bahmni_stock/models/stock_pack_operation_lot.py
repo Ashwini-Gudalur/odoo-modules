@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 class StockPackOperation(models.Model):
     _inherit = 'stock.pack.operation'
-
     available_qty = fields.Integer(string="Available Qty")
     picking_type = fields.Char(string="Operation Type")
     # existing_lot = fields.Boolean(string="Existing Lot/serial Number")
@@ -99,10 +98,17 @@ class StockPackOperation(models.Model):
 class StockPackOperationLot(models.Model):
     _inherit = 'stock.pack.operation.lot'
 
-    available_qty = fields.Integer(string="Available Qty")
+    available_qty = fields.Integer(string="Available Qty", compute='_calculate_available_qty')
 
-    
-    # location_lot_line_id = fields.Many2one('location.stock.quant', string="Lot/serial Number")
+
+    @api.depends('lot_id')
+    def _calculate_available_qty(self):
+        stock_quant = self.env['stock.quant'].search(
+            [('lot_id', '=', self.lot_id.id),
+             ('location_id', '=', self.operation_id.picking_id.location_id.id), ('qty', '>', 0)])
+        self.available_qty = sum(stock_quant.mapped('qty'))
+
+
 
     # @api.onchange('location_lot_line_id')
     # def onchange_location_lot_line_id(self):

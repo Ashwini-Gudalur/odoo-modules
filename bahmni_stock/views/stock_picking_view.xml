@@ -16,8 +16,6 @@
 				<field name="available_qty" attrs="{'invisible': [('picking_type', '=', 'incoming')]}"/> 
 				<field name="picking_type" invisible="1"/>
 			</xpath>
-			<xpath expr="//field[@name='origin']" position="after">
-			</xpath>
 		</field>
 	</record>
 	

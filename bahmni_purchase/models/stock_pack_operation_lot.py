@@ -4,10 +4,31 @@ from odoo import models, fields, api , _
 import odoo.addons.decimal_precision as dp
 from odoo.exceptions import UserError, ValidationError
 from odoo.exceptions import Warning
-
+import datetime
+import json
+from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
 
 class StockPackOperationLot(models.Model):
     _inherit = 'stock.pack.operation.lot'
+    is_expired_lot = fields.Boolean(string='Expired/Lot', default=True)
+
+    # @api.depends('available_qty')
+    # def _make_check_true(self):
+    #     if not self.is_expired_lot:
+    #         self.is_expired_lot = True
+
+
+    @api.onchange('is_expired_lot')
+    def onchange_expired_lot_check(self):
+
+        dt = datetime.datetime.now()
+        current_time = json.dumps(dt.isoformat())
+        if self.is_expired_lot == True:
+            return {'domain': {'location_lot_line_id': [('life_date', '<=', datetime.datetime.now().strftime(DEFAULT_SERVER_DATETIME_FORMAT)), ('location_id', '=', self.operation_id.location_id.id), ('product_id', '=', self.operation_id.product_id.id)]}}
+        else:
+            return {'domain': {'location_lot_line_id': [('life_date', '>=', datetime.datetime.now().strftime(DEFAULT_SERVER_DATETIME_FORMAT)), ('location_id', '=', self.operation_id.location_id.id), ('product_id', '=', self.operation_id.product_id.id)]}}
+
+
 
     @api.model
     def default_get(self, fields):
@@ -32,7 +53,7 @@ class StockPackOperationLot(models.Model):
                     else:
                         amount_tax += purchase_line.price_tax
                     if purchase_line.price_unit + amount_tax > 0:
-                        res.update({'cost_price': purchase_line.price_unit + amount_tax})
+                        res.update({'cost_price': purchase_line.price_unit + (amount_tax / purchase_line.product_qty)})
                     if purchase_line.mrp > 0:
                         res.update({'mrp':purchase_line.mrp})
                     # res.update({'cost_price': purchase_line.price_unit + amount_tax,'mrp':purchase_line.mrp})
@@ -46,8 +67,6 @@ class StockPackOperationLot(models.Model):
                 if cost_price + (cost_price * markup_table_line.markup_percentage / 100) > 0:
                     res.update({'sale_price': cost_price + (cost_price * markup_table_line.markup_percentage / 100)})
                 # res.update({'sale_price': cost_price + (cost_price * markup_table_line.markup_percentage / 100)})
-
-            print("..................res............,res",res)
         return res
 
     sale_price = fields.Float(string="Sale Price", digits=dp.get_precision('Product Price'))
@@ -59,6 +78,8 @@ class StockPackOperationLot(models.Model):
                               help="This field is used to track, which all move_ids are utilized to fetch cost_price")
     check_operation_lot = fields.Boolean( string='Check',default=False)
     location_lot_line_id = fields.Many2one('location.stock.quant', string="Lot/serialNumber")
+    lot_id = fields.Many2one('stock.production.lot', string="Batch No")
+
 
     @api.onchange('location_lot_line_id')
     def onchange_location_lot_line_id(self):
@@ -66,7 +87,10 @@ class StockPackOperationLot(models.Model):
             self.lot_id = self.location_lot_line_id.lot_id
         else:
             self.lot_id = False
-
+        stock_quant = self.env['stock.quant'].search(
+            [('lot_id', '=', self.location_lot_line_id.lot_id.id),
+             ('location_id', '=', self._origin.operation_id.picking_id.location_id.id), ('qty', '>', 0)])
+        self.available_qty=sum(stock_quant.mapped('qty'))
 
 
     @api.onchange('lot_id')
@@ -162,9 +186,7 @@ class StockPicking(models.Model):
 
 class StockPackOperation(models.Model):
     _inherit = 'stock.pack.operation'
-
     check_operation = fields.Boolean(related='picking_id.check', string='Check')
-
 
     @api.multi
     def action_split_lots(self):
@@ -172,25 +194,35 @@ class StockPackOperation(models.Model):
         # If it's a returned stock move, we do not want to create a lot
         returned_move = self.linked_move_operation_ids.mapped('move_id').mapped('origin_returned_move_id')
         picking_type = self.picking_id.picking_type_id
+        print(self.check_operation,'$$$$$$$$$$$$$$$$$$$$')
+        # picking=self.env['stock.picking'].search([('id','=',self.picking_id.id)])
+
         action_ctx.update({
-            'check':self.check_operation,
             'serial': self.product_id.tracking == 'serial',
             'only_create': picking_type.use_create_lots and not picking_type.use_existing_lots and not returned_move,
             'create_lots': picking_type.use_create_lots,
             'state_done': self.picking_id.state == 'done',
+            'check': self.check_operation,
             'show_reserved': any([lot for lot in self.pack_lot_ids if lot.qty_todo > 0.0])})
-        view_id = self.env.ref('stock.view_pack_operation_lot_form').id
+
+        view_id = self.env.ref('bahmni_purchase.view_pack_operation_lot_form_inherit_custom').id
         return {
-            'name': _('Lot/Serial Number Details'),
-            'type': 'ir.actions.act_window',
-            'view_type': 'form',
-            'view_mode': 'form',
-            'res_model': 'stock.pack.operation',
-            'views': [(view_id, 'form')],
-            'view_id': view_id,
-            'target': 'new',
-            'res_id': self.ids[0],
-            'context': action_ctx}
+        'name': _('Lot/Serial Number Details'),
+        'type': 'ir.actions.act_window',
+        'view_type': 'form',
+        'view_mode': 'form',
+        'res_model': 'stock.pack.operation',
+        'views': [(view_id, 'form')],
+        'view_id': view_id,
+        'target': 'new',
+        'res_id': self.ids[0],
+        'context': action_ctx}
+
     split_lot = action_split_lots
+
+class StockPackOperationLotInherit(models.Model):
+    _inherit = 'stock.pack.operation.lot'
+    check = fields.Boolean(related='operation_id.check_operation')
+
 
 

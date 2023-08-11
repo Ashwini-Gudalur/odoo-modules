@@ -70,7 +70,7 @@ class sale_order(models.Model):
                             soltemp.onchange_location_lot_line_id()
                             soltemp.onchange_lot_id()
                 if(template.type != 'service'):
-                    if soltemp.lot_id and soltemp.lot_id.id>0:
+                    if soltemp.lot_id.id >0 and soltemp.lot_id.id>0:
                         prod_context = self._get_product_context(shop_id,soltemp.lot_id.id)
                         prodlot = stock_prod_lot.browse( soltemp.lot_id.id)
                         product_id = []
@@ -120,6 +120,7 @@ class sale_order(models.Model):
                 stock_records = self.env['stock.quant'].read_group([('lot_id','=',line.lot_id.id),('location_id','=',self.shop_id.location_id.id),('product_id','=',line.product_id.id),('location_id.usage','=', 'internal')], fields=['location_id', 'qty'],
                                                         groupby=['location_id','lot_id'])
                 if stock_records:
+                    print('LOTTTTT+++++++++++++')
                     for record in stock_records:
                         if record['qty'] < line.product_uom_qty:
                             raise UserError('Quantity is more then lot/serial available Quantity')
@@ -207,15 +208,21 @@ class sale_order(models.Model):
         if self.shop_id:
             self.shop_location_id = self.shop_id.location_id.id
             for line in self.order_line:
-                for record in self.env['location.stock.quant'].search([('product_id','=',line.product_id.id),('location_id','=',line.order_id.shop_location_id.id)], order='life_date asc'):
-                    if record.lot_id.life_date >= str(fields.datetime.now()):
-                        stock_records = self.env['stock.quant'].search([('lot_id','=',record.lot_id.id),('location_id','=',record.location_id.id),('product_id','=',record.lot_id.product_id.id),('location_id.usage','=', 'internal'),('qty','>', 0)])
-                        if sum(stock_records.mapped('qty')) >= line.product_uom_qty:
-                            line.location_lot_line_id = record.id
-                            line.lot_id = line.location_lot_line_id.lot_id
-                            break 
-                        else:
-                            line.location_lot_line_id = False
+                if (len(self.env['location.stock.quant'].search([('product_id','=',line.product_id.id),('location_id','=',line.order_id.shop_location_id.id)], order='life_date asc'))) == 0:
+                    line.location_lot_line_id = False
+                    line.lot_id = False
+                    line.onchange_lot_id()
+                else:
+                    for record in self.env['location.stock.quant'].search([('product_id','=',line.product_id.id),('location_id','=',line.order_id.shop_location_id.id)], order='life_date asc'):
+                        if record.lot_id.life_date >= str(fields.datetime.now()):
+                            stock_records = self.env['stock.quant'].search([('lot_id','=',record.lot_id.id),('location_id','=',record.location_id.id),('product_id','=',record.lot_id.product_id.id),('location_id.usage','=', 'internal'),('qty','>', 0)])
+                            if sum(stock_records.mapped('qty')) >= line.product_uom_qty:
+                                line.location_lot_line_id = record.id
+                                line.lot_id = line.location_lot_line_id.lot_id
+                                line.onchange_lot_id()
+                                break 
+                            else:
+                                line.location_lot_line_id = False
         return res
 
 class providers(models.Model):
@@ -265,6 +272,9 @@ class sale_order_line(models.Model):
         if self.lot_id:
             self.price_unit = self.lot_id.sale_price
             self.expiry_date = self.lot_id.life_date
+        else:
+            self.price_unit = False
+            self.expiry_date = False
 
         return res
 
@@ -292,7 +302,7 @@ class sale_order_line(models.Model):
 
     @api.onchange('product_uom', 'product_uom_qty')
     def product_uom_change(self):
-        res= res = super(sale_order_line, self).product_uom_change()
+        res = super(sale_order_line, self).product_uom_change()
         for record in self.env['location.stock.quant'].search([('product_id','=',self.product_id.id),('location_id','=',self.order_id.shop_location_id.id)], order='life_date asc'):
             if record.lot_id.life_date >= str(fields.datetime.now()):
                 stock_records = self.env['stock.quant'].search([('lot_id','=',record.lot_id.id),('location_id','=',record.location_id.id),('product_id','=',record.lot_id.product_id.id),('location_id.usage','=', 'internal'),('qty','>', 0)])
@@ -369,6 +379,7 @@ class sale_order_line(models.Model):
             self.lot_id = self.location_lot_line_id.lot_id
         else:
             self.lot_id = False
+
             
     @api.multi
     def _get_display_price(self, product):
@@ -569,6 +580,7 @@ class location_stock_quant(models.Model):
     @api.multi
     def name_get(self):
         res = []
+        qty = []
         for record in self.search([('id','in',self.ids)], order='life_date asc'):
             lot_name = record.lot_id.name
             if(record.lot_id.life_date):
@@ -578,7 +590,7 @@ class location_stock_quant(models.Model):
                 stock_records = self.env['stock.quant'].search([('lot_id','=',record.lot_id.id),('location_id','=',record.location_id.id),('product_id','=',record.lot_id.product_id.id),('location_id.usage','=', 'internal'),('qty','>', 0)])
                 # if sum(stock_records.mapped('qty')) >0:
                 #     name = "%s [%s] [%s] [%s]" % (lot_name,expiry,record.location_id.name,sum(stock_records.mapped('qty')))
-
+                qty.append(sum(stock_records.mapped('qty')))
                 #     res.append((record.id, name))
                 name = "%s [%s] [%s] [%s]" % (lot_name,expiry,record.location_id.name,sum(stock_records.mapped('qty')))
 
@@ -616,6 +628,7 @@ class Picking(models.Model):
     @api.multi
     def do_new_transfer(self):
         ret = super(Picking, self).do_new_transfer()
+        print('DONEEEEEE**********************')
         product_stock_picking_records = self.env['product.stock.picking'].search([('picking_id','=',self.id)])
         for record in product_stock_picking_records:
             record.unlink()
@@ -716,8 +729,6 @@ class StockPackOperationLot(models.Model):
 
     def write(self, vals):
         print(".................................222222222222222222222")
-        import traceback
-        traceback.print_stack()
         ret =super(StockPackOperationLot, self).write(vals)
         if self.operation_id.picking_id.picking_type_id.code == 'incoming':
             if self.mrp == 0:

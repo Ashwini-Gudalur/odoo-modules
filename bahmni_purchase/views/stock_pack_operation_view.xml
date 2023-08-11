@@ -39,6 +39,7 @@
 			</xpath>
 			<xpath expr="//field[@name='pack_lot_ids']/tree/field[@name='plus_visible']"
 				position="after">
+
 				<field name="move_id" invisible="1" />
 				<field name="cost_price" invisible="context.get('show_reserved')"
 					attrs="{'readonly': [('check_operation_lot', '=', True)]}" />
@@ -53,19 +54,15 @@
 				<field name="qty" />
 			</xpath>
 			<xpath expr="//field[@name='pack_lot_ids']/tree/field[@name='lot_id']" position="after">
-				<field name="location_lot_line_id" invisible=" not context.get('check')"
-					domain="[('location_id','=', parent.location_id),('product_id','=',parent.product_id),('life_date', '&gt;=', datetime.datetime.now())]"
-					options="{'no_create_edit': True}"
-				/>
+				<field name="location_lot_line_id" invisible="not context.get('check')"
+					/>
 			</xpath>
-
+			<xpath expr="//field[@name='pack_lot_ids']/tree/field[@name='lot_id']" position="before">
+				<field name="is_expired_lot" invisible="not context.get('check')"/>
+			</xpath>
 			<xpath expr="//field[@name='lot_id']" position="attributes">
 				<attribute name="invisible">context.get('check')</attribute>
 			</xpath>
-
-
 		</field>
 	</record>
-
-
 </odoo>

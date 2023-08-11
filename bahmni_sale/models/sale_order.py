@@ -301,6 +301,17 @@ class SaleOrder(models.Model):
     # So Once we Confirm the sale order it will create the invoice and ask for the register payment.
     @api.multi
     def action_confirm(self):
+        for line in self.order_line:
+            if line.product_id.tracking == 'lot':
+                print('PRODUCT CHECKEDDD!!!!!!!!!!!!!!!')
+                if not line.lot_id:
+                    raise UserError(
+                        _('No batch number provided item %s') %
+                        (line.product_id.name))
+                if not line.location_lot_line_id:
+                    raise UserError(
+                        _('No batch number provided item %s') %
+                        (line.product_id.name))
 
         res = super(SaleOrder,self).action_confirm()
         self.validate_delivery()
@@ -395,6 +406,7 @@ class SaleOrder(models.Model):
                         picking.force_assign()#Force Available
                     found_issue = False
                     if picking.state not in ('waiting','confirmed','partially_available'):
+                        print()
                         for pack in picking.pack_operation_product_ids:
                             pack_operation_lots = self.env['stock.pack.operation.lot'].search([('operation_id','=',pack.id)])
                             total_qty_done = 0
@@ -406,11 +418,11 @@ class SaleOrder(models.Model):
                             move_obj = operation_link_obj.move_id
                             for pack_operation_lot in pack_operation_lots:
                                 qty_done = 0
+
                                 if pack.product_id.tracking != 'none':
-                                    line = self.order_line.filtered(lambda l:l.product_id == pack.product_id and l.lot_id.id == pack_operation_lot.lot_id.id)
-                                    # line = operation_link_obj.move_id.procurement_id.sale_line_id
-                        
-                                    lot_ids = None
+                                    # line = self.order_line.filtered(lambda l:l.product_id == pack.product_id and l.lot_id.id == pack_operation_lot.lot_id.id)
+                                    # line1 = self.env['sale.order.line'].search([()])
+                                    line = operation_link_obj.move_id.procurement_id.sale_line_id
                                     if line.lot_id:
                                         lot_ids = line.lot_id
                                     else:
@@ -422,7 +434,7 @@ class SaleOrder(models.Model):
                                         # move_obj = operation_link_obj.move_id
                                     
                                         for lot in lot_ids:
-                                            print("------------------------0000")
+
                                             pack_operation_lot.write({
                                                 'lot_name': lot.name,
                                                 'qty': line.product_uom_qty,
@@ -439,7 +451,6 @@ class SaleOrder(models.Model):
                                     else:
                                         found_issue = True
                                 else:
-                                    print("....................................................",pack)
                                     pack.qty_done = pack.product_qty
                             pack.qty_done = total_qty_done
                         if not found_issue:

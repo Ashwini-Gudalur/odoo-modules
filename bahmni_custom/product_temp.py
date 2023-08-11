@@ -23,7 +23,6 @@ class ProductTemplate(models.Model):
             else:
                 sp_incl_tax = float(sales_price)
             if(sp_incl_tax > mrp):
-                print("..................ret.type",ret.type)
                 if ret.type != 'service':
                     raise UserError(
                         _('sale price %f and include sale+ tax is %f is more than mrp %f') %

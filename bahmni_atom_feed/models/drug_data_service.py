@@ -64,6 +64,7 @@ class DrugDataService(models.Model):
             categ_id = self.env["product.category"].create({'name':category_name}).id
 
         list_price = drug_ids_from_db and self.env['product.product'].browse(drug_ids_from_db[0]).list_price or 0.0
+        mrp = 4
         drug["uuid"] = drug_from_feed.get("uuid")
         drug["name"] = drug_from_feed.get("name")
         drug["default_code"] = drug_from_feed.get("shortName")
@@ -71,6 +72,7 @@ class DrugDataService(models.Model):
         drug["categ_id"] = categ_id
         drug["type"] = "product"
         drug["list_price"] = list_price
+        drug["mrp"] = mrp
         drug["sale_ok"] = 1
         drug["purchase_ok"] = 1
         return drug

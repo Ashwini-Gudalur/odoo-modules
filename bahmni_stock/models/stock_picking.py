@@ -8,7 +8,7 @@ from odoo.exceptions import UserError
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
-   
+
     # this method is overridden to update cost_price, sale_price and mrp while lot is getting created
     def _create_lots_for_picking(self):
         Lot = self.env['stock.production.lot']
@@ -41,9 +41,9 @@ class StockPicking(models.Model):
                 if move.state not in ('assigned', 'confirmed', 'waiting'):
                     continue
                 move_quants = move.reserved_quant_ids
-                for mo in move_quants:
-                    if mo.product_id.tracking == 'lot':
-                        mo.lot_id = move.procurement_id.sale_line_id.lot_id.id
+                # for mo in move_quants:
+                #     if mo.product_id.tracking == 'lot':
+                #         mo.lot_id = move.procurement_id.sale_line_id.lot_id.id
                 picking_quants += move_quants
                 forced_qty = 0.0
                 if move.state == 'assigned':
@@ -62,6 +62,7 @@ class StockPicking(models.Model):
                 vals.update({'picking_type': picking.picking_type_id.code,
                              'available_qty': product_available_qty})
                 PackOperation |= PackOperation.create(vals)
+                print(product_available_qty,':::::::::::::::::::::::::::::::')
         # recompute the remaining quantities all at once
         self.do_recompute_remaining_quantities()
         for pack in PackOperation:
@@ -153,7 +154,6 @@ class StockPicking(models.Model):
                     }) for lot in lots_grouped.get(mapping, {}).keys()],
             }
             product_id_to_vals.setdefault(mapping.product.id, list()).append(val_dict)
-
         for move in self.move_lines.filtered(lambda move: move.state not in ('done', 'cancel')):
             values = product_id_to_vals.pop(move.product_id.id, [])
             pack_operation_values += values
