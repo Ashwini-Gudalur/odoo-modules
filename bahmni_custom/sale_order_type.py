@@ -590,10 +590,12 @@ class location_stock_quant(models.Model):
                 stock_records = self.env['stock.quant'].search([('lot_id','=',record.lot_id.id),('location_id','=',record.location_id.id),('product_id','=',record.lot_id.product_id.id),('location_id.usage','=', 'internal'),('qty','>', 0)])
                 # if sum(stock_records.mapped('qty')) >0:
                 #     name = "%s [%s] [%s] [%s]" % (lot_name,expiry,record.location_id.name,sum(stock_records.mapped('qty')))
-                qty.append(sum(stock_records.mapped('qty')))
+                if sum(stock_records.mapped('qty')) == 0:
+                    continue
+                else:
+                    qty.append(sum(stock_records.mapped('qty')))
                 #     res.append((record.id, name))
                 name = "%s [%s] [%s] [%s]" % (lot_name,expiry,record.location_id.name,sum(stock_records.mapped('qty')))
-
                 res.append((record.id, name))
         return res
 
