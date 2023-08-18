@@ -103,10 +103,11 @@ class StockPackOperationLot(models.Model):
 
     @api.depends('lot_id')
     def _calculate_available_qty(self):
-        stock_quant = self.env['stock.quant'].search(
-            [('lot_id', '=', self.lot_id.id),
-             ('location_id', '=', self.operation_id.picking_id.location_id.id), ('qty', '>', 0)])
-        self.available_qty = sum(stock_quant.mapped('qty'))
+        for op_lot in self:
+            stock_quant = self.env['stock.quant'].search(
+                [('lot_id', '=', op_lot.lot_id.id),
+                 ('location_id', '=', op_lot.operation_id.picking_id.location_id.id), ('qty', '>', 0)])
+            op_lot.available_qty = sum(stock_quant.mapped('qty'))
 
 
 
