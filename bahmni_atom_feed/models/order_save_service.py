@@ -363,7 +363,9 @@ class OrderSaveService(models.Model):
                 self._process_orders(sale_order, all_orders, parent_order)
             parent_order_line = self.env['sale.order.line'].search([('external_order_id', '=', order['previousOrderId'])])
             if(not parent_order_line and not self._order_already_processed(order['previousOrderId'], order_dispensed)):
-                raise Warning("Previous order id does not exist in DB. This can be because of previous failed events")
+                _logger.info("Previous order id does not exist in DB so treating it as a new order") 
+                # raise Warning("Previous order id does not exist in DB. This can be because of previous failed events")
+                
 
         if(order["voided"] or order.get('action', "") == "DISCONTINUE"):
             self._delete_sale_order_line(parent_order_line)

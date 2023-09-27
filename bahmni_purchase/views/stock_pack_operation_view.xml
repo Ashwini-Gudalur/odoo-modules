@@ -41,11 +41,11 @@
 				position="after">
 
 				<field name="move_id" invisible="1" />
-				<field name="cost_price" invisible="context.get('show_reserved')"
+				<field name="cost_price"
 					attrs="{'readonly': [('check_operation_lot', '=', True)]}" />
-				<field name="sale_price" invisible="context.get('show_reserved')"
+				<field name="sale_price"
 					attrs="{'readonly': [('check_operation_lot', '=', True)]}" />
-				<field name="mrp" invisible="context.get('show_reserved')"
+				<field name="mrp"
 					attrs="{'readonly': [('check_operation_lot', '=', True)]}" />
 				<field name="expiry_date" />
 				<field name="check_operation_lot" invisible="1" />

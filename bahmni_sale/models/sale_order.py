@@ -404,57 +404,71 @@ class SaleOrder(models.Model):
                 for picking in self.picking_ids:
                     if picking.state in ('waiting','confirmed','partially_available') and allow_negative.value == '1':
                         picking.force_assign()#Force Available
-                    found_issue = False
+                    # found_issue = False
                     if picking.state not in ('waiting','confirmed','partially_available'):
-                        print()
-                        for pack in picking.pack_operation_product_ids:
-                            pack_operation_lots = self.env['stock.pack.operation.lot'].search([('operation_id','=',pack.id)])
-                            total_qty_done = 0
-                            # self.env.cr.execute('ALTER TABLE stock_pack_operation_lot DROP INDEX stock_pack_operation_lot_uniq_lot_id')
-                            # self.env.cr.execute('ALTER TABLE stock_pack_operation_lot DROP INDEX stock_pack_operation_lot_uniq_lot_name')
-                            # for opration in pack_operation_lots:
-                            #     self.env.cr.execute('update stock_pack_operation_lot set lot_id=NULL,lot_name=NULL WHERE operation_id=%s', (opration.id,))
-                            operation_link_obj = self.env['stock.move.operation.link'].search([('operation_id','=',pack.id)],limit=1)
-                            move_obj = operation_link_obj.move_id
-                            for pack_operation_lot in pack_operation_lots:
-                                qty_done = 0
+                        #Deleting existing pack lots
+                        packs = self.env['stock.pack.operation'].search(
+                            [('picking_id', '=',picking.id)])
+                        for pck in packs:
+                            pack_operation_lots = self.env['stock.pack.operation.lot'].search(
+                                [('operation_id', '=', pck.id)])
+                            pack_operation_lots.unlink()
+                        for move in picking.move_lines:
+                            pack_ops = self.env['stock.pack.operation'].search([('picking_id','=',move.picking_id.id),('product_id','=',move.product_id.id)])
+                            for pack in pack_ops:
+                                # pack_operation_lots = self.env['stock.pack.operation.lot'].search([('operation_id','=',pack.id)])
+                                # pack_operation_lots.unlink()
+                                # print(pack_operation_lots,'$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+                                # total_qty_done = 0
+                                # self.env.cr.execute('ALTER TABLE stock_pack_operation_lot DROP INDEX stock_pack_operation_lot_uniq_lot_id')
+                                # self.env.cr.execute('ALTER TABLE stock_pack_operation_lot DROP INDEX stock_pack_operation_lot_uniq_lot_name')
+                                # for opration in pack_operation_lots:
+                                #     self.env.cr.execute('update stock_pack_operation_lot set lot_id=NULL,lot_name=NULL WHERE operation_id=%s', (opration.id,))
+                                # operation_link_obj = self.env['stock.move.operation.link'].search([('operation_id','=',pack.id)],limit=1)
+                                # move_obj = operation_link_obj.move_id
 
-                                if pack.product_id.tracking != 'none':
+                                # qty_done = 0
+
+                                if move.product_id.tracking != 'none':
                                     # line = self.order_line.filtered(lambda l:l.product_id == pack.product_id and l.lot_id.id == pack_operation_lot.lot_id.id)
                                     # line1 = self.env['sale.order.line'].search([()])
-                                    line = operation_link_obj.move_id.procurement_id.sale_line_id
-                                    if line.lot_id:
-                                        lot_ids = line.lot_id
-                                    else:
-                                        lot_ids = self._find_batch(pack.product_id,pack.product_qty,pack.location_id,picking)
-                                   
-                                    if lot_ids:
+                                    line = move.procurement_id.sale_line_id
+                                    print(line,'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW')
+                                    # if line.lot_id:
+                                    #     lot_ids = line.lot_id
+                                    # else:
+                                    #     lot_ids = self._find_batch(pack.product_id,pack.product_qty,pack.location_id,picking)
+
+                                    # if lot_ids:
                                         # #First need to Find the related move_id of this operation
                                         # operation_link_obj = self.env['stock.move.operation.link'].search([('operation_id','=',pack.id)],limit=1)
                                         # move_obj = operation_link_obj.move_id
-                                    
-                                        for lot in lot_ids:
 
-                                            pack_operation_lot.write({
-                                                'lot_name': lot.name,
-                                                'qty': line.product_uom_qty,
-                                                'operation_id': pack.id,
-                                                'move_id': move_obj.id,
-                                                'lot_id': lot.id,
-                                                'cost_price': lot.cost_price,
-                                                'sale_price': lot.sale_price,
-                                                'mrp': lot.mrp
-                                                })
-                            
-                                        qty_done = qty_done + line.product_uom_qty
-                                        total_qty_done = total_qty_done + qty_done
-                                    else:
-                                        found_issue = True
+                                        # for lot in lot_ids:
+
+                                    self.env['stock.pack.operation.lot'].create({
+                                        'lot_name': line.lot_id.name,
+                                        'qty': line.product_uom_qty,
+                                        'operation_id': pack.id,
+                                        'move_id': move.id,
+                                        'lot_id': line.lot_id.id,
+                                        'cost_price': line.lot_id.cost_price,
+                                        'sale_price': line.lot_id.sale_price,
+                                        'mrp': line.lot_id.mrp
+                                        })
+
+                                    # qty_done = qty_done + line.product_uom_qty
+                                    # total_qty_done = total_qty_done + qty_done
+                                    # else:
+                                    #     found_issue = True
                                 else:
                                     pack.qty_done = pack.product_qty
-                            pack.qty_done = total_qty_done
-                        if not found_issue:
-                            picking.do_new_transfer()#Validate
+                                qty_done=0
+                                for op_lot in pack.pack_lot_ids:
+                                    qty_done+=op_lot.qty
+                                pack.qty_done = qty_done
+                        # if not found_issue:
+                        picking.do_new_transfer()#Validate
                     else:
                         message = ("<b>Auto validation Failed</b> <br/> <b>Reason:</b> There are not enough stock available for Some product on <a href=# data-oe-model=stock.location data-oe-id=%d>%s</a> Location") % (self.location_id,self.location_id.name)
                         self.message_post(body=message)
