@@ -597,7 +597,10 @@ class location_stock_quant(models.Model):
                 #     res.append((record.id, name))
                 name = "%s [%s] [%s] [%s]" % (lot_name,expiry,record.location_id.name,sum(stock_records.mapped('qty')))
                 res.append((record.id, name))
-        return res
+        if not res:
+            return super(location_stock_quant, self).name_get()
+        else:
+            return res
 
 class Product_Picking(models.Model):
     _name = "product.stock.picking"

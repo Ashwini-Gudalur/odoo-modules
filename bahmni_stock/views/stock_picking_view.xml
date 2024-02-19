@@ -16,6 +16,9 @@
 				<field name="available_qty" attrs="{'invisible': [('picking_type', '=', 'incoming')]}"/> 
 				<field name="picking_type" invisible="1"/>
 			</xpath>
+			<xpath expr="//field[@name='location_dest_id']" position="after">
+				<field name="is_no_lot" readonly="1"/>
+			</xpath>
 		</field>
 	</record>
 	

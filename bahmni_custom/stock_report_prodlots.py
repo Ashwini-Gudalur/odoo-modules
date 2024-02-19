@@ -50,6 +50,7 @@ class prodlots_report(models.Model):
                   left join product_category on (product_category.id=product_template.categ_id)
                   left join product_uom on (product_uom.id=product_template.uom_id)
                   left join stock_warehouse_orderpoint swo on (product_product.id=swo.product_id) and swo.active = true
+                  where product_template.active = 't'
                  group by report_without_unit.location_id,product_category.name ,report_without_unit.product_id,
                   (case WHEN (sale_price != 0) then qty*sale_price else qty*list_price end),
                     report_without_unit.product_id,

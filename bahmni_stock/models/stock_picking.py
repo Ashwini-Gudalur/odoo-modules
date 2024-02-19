@@ -8,7 +8,54 @@ from odoo.exceptions import UserError
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
+    is_no_lot = fields.Boolean('Is No Lot', default=False)
+    def confirm_pending_orders(self):
+        stock_picking = self.env['stock.picking'].search(['|', ('state', '=', 'confirmed'),
+                                                          ('state', '=', 'partially_available')],limit=20)
+        for picking in stock_picking:
+            if picking.state == 'confirmed':
+                picking.force_assign()
+            elif picking.state == 'partially_available':
+                picking.do_unreserve()
+                picking.force_assign()
+            so = self.env['sale.order'].search([('id', '=', picking.sale_id.id)])
+            sol = self.env['sale.order.line'].search([('order_id', '=', so.id)])
+            for line in sol:
+                if not line.location_lot_line_id.lot_id.id:
+                    picking.write({'is_no_lot': True})
+                    picking.action_cancel()
+                    break
+                stock_pack_operation = self.env['stock.pack.operation'].search(
+                    [('picking_id', '=', picking.id),
+                     ('product_id', '=', line.product_id.id)])
 
+                stock_pack_operation_lot = self.env['stock.pack.operation.lot'].search(
+                    [('operation_id', '=', stock_pack_operation.id)])
+
+                if stock_pack_operation_lot:
+                    stock_pack_operation_lot.unlink()
+                #
+                # print(so.id, 'SALEEEEEE ORDERRRRRRRRRRRRRRRRRRRRRRRRRR')
+                # print(picking.id, 'PICKINGGGGGGGGGGGGGGGG IDDDDDDDDDDDDDDD')
+                # print(line.product_id.id, line.product_id.name, 'SOL PRODUCTTTTTTTTTTT')
+                # print(line.location_lot_line_id.lot_id.name, 'LOTTTT NAMEEEEEEEE')
+                # print(line.location_lot_line_id.lot_id.cost_price, 'CCCCCCCCCPPPPPPPPP')
+                # print(line.location_lot_line_id.lot_id.sale_price, 'SSSSSSSSSSSSPPPPPPPPPPPPPPP')
+                # print(line.location_lot_line_id.lot_id.mrp, 'MMMMMMMMMRRRRRRRRRRRRPPPPPPPPPPP')
+                #
+
+                operation_lot = self.env['stock.pack.operation.lot'].create({'operation_id': stock_pack_operation.id,
+                                                                             'lot_id': line.location_lot_line_id.lot_id.id,
+                                                                             'available_qty': stock_pack_operation.available_qty,
+                                                                             'cost_price': line.location_lot_line_id.lot_id.cost_price,
+                                                                             'sale_price': line.location_lot_line_id.lot_id.sale_price,
+                                                                             'mrp': line.location_lot_line_id.lot_id.mrp,
+                                                                             'qty': line.product_uom_qty,
+                                                                             'expiry_date': line.location_lot_line_id.lot_id.life_date})
+
+                pack_operation = self.env['stock.pack.operation'].search([('id', '=', operation_lot.operation_id.id)])
+                pack_operation.save()
+                picking.do_new_transfer()
     # this method is overridden to update cost_price, sale_price and mrp while lot is getting created
     def _create_lots_for_picking(self):
         Lot = self.env['stock.production.lot']

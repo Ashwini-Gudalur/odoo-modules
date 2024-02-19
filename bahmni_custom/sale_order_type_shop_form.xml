@@ -142,7 +142,7 @@
             </xpath>
 			<xpath expr="//field[@name='order_line']/tree/field[@name='qty_delivered']" position="after">
 
-				<field name="location_lot_line_id" 
+				<field name="location_lot_line_id"
                 domain="[('product_id','=',product_id),('qty','>',0),('location_id','=',parent.shop_location_id),('life_date', '&gt;=', datetime.datetime.now())]"  
                 options="{'no_create_edit': True}" context="{'form_view_ref' : 'bahmni_custom.location_stock_quant_view_from'}" />
 
