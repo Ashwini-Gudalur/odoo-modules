@@ -36,7 +36,7 @@
                         Pin: <t t-esc="company.partner_id.zip"/>,<br/>
                         Phone: <t t-esc="company.partner_id.phone"/>,<br/>
                         <t t-if="company.vat">
-                            Tax ID: <t t-esc="company.vat"/>
+                            GSTIN: <t t-esc="company.vat"/>
                         </t>
                        
                     </td>

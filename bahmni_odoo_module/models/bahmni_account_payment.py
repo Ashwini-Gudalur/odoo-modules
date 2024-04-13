@@ -261,6 +261,16 @@ class AccountInvoice(models.Model):
                 total=0
                 print("group=============>>",group)
                 for invoice_line_item in group:
+                    print('invoice_line_item======',invoice_line_item)
+                    price = invoice_line_item.price_unit * (1 - (invoice_line_item.discount or 0.0) / 100.0)
+                    print(price, 'price=====')
+                    taxes = invoice_line_item.invoice_line_tax_ids.compute_all(price, invoice_line_item.invoice_id.currency_id, invoice_line_item.quantity,
+                                                                  product=invoice_line_item.product_id,
+                                                                  partner=invoice_line_item.invoice_id.partner_shipping_id)
+                    print(taxes, 'taxes=====')
+
+                    invoice_line_item.total_with_tax = sum(
+                        t.get('amount', 0.0) for t in taxes.get('taxes', [])) + invoice_line_item.price_subtotal
                     print("product",invoice_line_item.product_id)
 
                     tax_code,taxes='',0
@@ -288,7 +298,10 @@ class AccountInvoice(models.Model):
                     'is_line':True,
                     'taxes':taxes,
                     'tax_code':tax_code,
-                    'batch_name':invoice_line_item.lot_id.name or False
+                    'batch_name':invoice_line_item.lot_id.name or False,
+                    'hsn_code':invoice_line_item.product_id.hsncode.hsncode,
+                    'discount':invoice_line_item.discount,
+                    'total_with_tax':invoice_line_item.total_with_tax
                     })
                     total+=invoice_line_item.price_subtotal
                 print("invoice_lines_lists......................................",invoice_lines_lists)
@@ -303,6 +316,7 @@ class AccountInvoice(models.Model):
             bill['paid_amount'] = self.amount_total
             bill['previous_balance'] = bill['outstanding_balance'] 
             bill['bill_amount'] = bill['net_amount']
+            bill['place_of_supply']= sale_order.place_of_supply.state_id.name
             
             
             if self.date:
@@ -336,3 +350,7 @@ class AccountInvoice(models.Model):
             print("bill==================>>>",bill)
             #ghjk
             return bill
+
+
+
+

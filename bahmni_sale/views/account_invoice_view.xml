@@ -8,6 +8,13 @@
 			<xpath expr="//field[@name='date_invoice']" position="after">
 				<field name="shop_id"/>
 			</xpath>
+			<xpath expr="//field[@name='invoice_line_ids']/tree/field[@name='price_subtotal']" position="after">
+				<field name="total_with_tax" invisible="1" />
+			</xpath>
+
 		</field>
 	</record>
+
+
+
 </odoo>

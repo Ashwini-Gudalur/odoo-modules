@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+<!--        <report-->
+<!--            id="iplit_invoice_action_report_print"-->
+<!--            model="account.invoice"-->
+<!--            string="Invoice Print"-->
+<!--            report_type="qweb-pdf"-->
+<!--            name="iplit_gst_module.iplit_invoice_print_report"-->
+<!--            file="iplit_gst_module.iplit_invoice_print_report"-->
+<!--            attachment_use="False"-->
+<!--        />-->
+
+<!--        <report-->
+<!--            id="iplit_gst_invoice_action_report"-->
+<!--            model="account.invoice"-->
+<!--            string="Invoice GST"-->
+<!--            report_type="qweb-pdf"-->
+<!--            name="iplit_gst_module.iplit_gst_invoice_print_report"-->
+<!--            file="iplit_gst_module.iplit_gst_invoice_print_report"-->
+<!--            attachment_use="False"-->
+<!--        />-->
+
+    </data>
+</odoo>

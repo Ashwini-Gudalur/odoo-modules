@@ -19,6 +19,7 @@ _logger = logging.getLogger(__name__)
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+
     @api.depends('order_line.price_total', 'discount', 'chargeable_amount','order_line.product_uom_qty')
     def _amount_all(self):
         """
@@ -139,7 +140,6 @@ class SaleOrder(models.Model):
                 #'partner_village': partner.village,
             })
 
-
     partner_village = fields.Many2one("village.village", string="Partner Village")
     care_setting = fields.Selection([('ipd', 'IPD'),
                                      ('opd', 'OPD')], string="Care Setting")
@@ -163,6 +163,7 @@ class SaleOrder(models.Model):
     round_off_value = fields.Float(compute='_amount_all', string='Round off amount')
     rounded_total = fields.Float(compute='_amount_all', string='Rounded Total')
     round_active = fields.Boolean(compute='get_round_active')
+
 
 
 
@@ -274,7 +275,10 @@ class SaleOrder(models.Model):
         journal_id = self.env['account.invoice'].default_get(['journal_id'])['journal_id']
         if not journal_id:
             raise UserError(_('Please define an accounting sale journal for this company.'))
+        doctor_name = self.provider_name.encode('utf-8') if self.provider_name else ''
         invoice_vals = {
+            'doctor_name': doctor_name,
+            'care_setting': self.care_setting or '',
             'name': self.client_order_ref or '',
             'origin': self.name,
             'type': 'out_invoice',

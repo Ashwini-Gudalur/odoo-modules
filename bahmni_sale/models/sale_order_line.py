@@ -20,7 +20,28 @@ class SaleOrderLine(models.Model):
     lot_id = fields.Many2one('stock.production.lot', string="Batch No")
     
     expiry_date = fields.Datetime(string="Expiry date")
-    
+
+    exempt_tax = fields.Boolean('Exempt Tax', default=False)
+    total_with_tax = fields.Float('Total with tax')
+
+    @api.onchange('exempt_tax')
+    def onchange_exempt_tax(self):
+        if self.exempt_tax:
+            self.tax_id = [41]
+
+    @api.onchange('tax_id','price_subtotal')
+    def onchange_tax_id(self):
+        price = self.price_unit * (1 - (self.discount or 0.0) / 100.0)
+        print(price,'price=====')
+        taxes = self.tax_id.compute_all(price, self.order_id.currency_id, self.product_uom_qty, product=self.product_id,
+                                        partner=self.order_id.partner_shipping_id)
+        print(taxes,'taxes=====')
+
+        self.total_with_tax = sum(t.get('amount', 0.0) for t in taxes.get('taxes', [])) + self.price_subtotal
+        print(self.total_with_tax,'total_with_tax=====')
+
+
+
     @api.onchange('lot_id')
     def onchange_lot_id(self):
         if self.lot_id:
