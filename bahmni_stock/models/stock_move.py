@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from dateutil import tz
-
+from odoo.exceptions import ValidationError, UserError
 from odoo import models, fields, api
 from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT as DTF
 
@@ -34,3 +34,14 @@ class StockMove(models.Model):
             if any(sale_order) and sale_order.location_id:
                 vals.update({'location_id':sale_order.location_id.id})
         return super(StockMove,self).create(vals)
+
+
+class Inventory(models.Model):
+    _inherit = 'stock.inventory'
+
+    def action_done(self):
+        for line in self.line_ids:
+            if not line.prod_lot_id:
+                raise ValidationError(
+                    "Cannot proceed with inventory because lot/serial number is empty")
+        return super(Inventory, self).action_done()

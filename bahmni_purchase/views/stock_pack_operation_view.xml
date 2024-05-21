@@ -54,8 +54,7 @@
 				<field name="qty" />
 			</xpath>
 			<xpath expr="//field[@name='pack_lot_ids']/tree/field[@name='lot_id']" position="after">
-				<field name="location_lot_line_id" invisible="not context.get('check')"
-					/>
+				<field name="location_lot_line_id" domain="[('product_id','=', parent.product_id),('life_date', '&gt;=', datetime.datetime.now()),('location_id', '=', parent.location_id)]" invisible="not context.get('check')"/>
 			</xpath>
 			<xpath expr="//field[@name='pack_lot_ids']/tree/field[@name='lot_id']" position="before">
 				<field name="is_expired_lot" invisible="not context.get('check')"/>
